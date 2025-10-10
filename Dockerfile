@@ -1,5 +1,7 @@
 FROM python:3.11-slim
 
+COPY requirements.txt /requirements.txt
+
 WORKDIR /app
 
 RUN apt update && apt install -y \
@@ -7,15 +9,13 @@ RUN apt update && apt install -y \
     libglib2.0-0 \
     poppler-utils \
     tesseract-ocr \
-    && rm -f /var/apt/lists/*
+&& rm -f -r /var/lib/apt/lists/*
 
-COPY requirements.txt .
+RUN pip install --no-cache-dir -r /requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY app ./app
+COPY app .
 COPY data /data
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

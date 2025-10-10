@@ -1,2 +1,18 @@
-fastapi
+# core Langchain ecosystem
+langchain
+langchain-core
+langchain-community
+langchain-openai
+langchain-text-splitters
+langchain-unstructured
+unstructured[pdf]
+langgraph
+
+# supporting libs
 uvicorn[standard]
+fastapi
+faiss-cpu
+python-dotenv
+
+# monitoring
+langsmith

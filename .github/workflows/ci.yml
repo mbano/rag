@@ -3,12 +3,18 @@ name: CI
 on:
   push:
     branches: ['main']
-  pull_request: 
+  pull_request:
     branches: ['main']
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY}}
+      LANGSMITH_TRACING: ${{ vars.LANGSMITH_TRACING}}
+      LANGSMITH_PROJECT: ${{ vars.LANGSMITH_PROJECT}}
+      LANGSMITH_ENDPOINT: ${{ vars.LANGSMITH_ENDPOINT}}
 
     steps:
       - uses: actions/checkout@v4

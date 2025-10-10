@@ -17,6 +17,6 @@ def test_ask_endpoint(monkeypatch):
     response = client.post("/ask", json={"question": "Test?"})
 
     assert response.status_code == 200
-    data = response.json
+    data = response.json()
     assert list(data.keys()) == ["answer"]
     assert isinstance(data["answer"], str)

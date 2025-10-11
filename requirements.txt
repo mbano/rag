@@ -4,8 +4,6 @@ langchain-core
 langchain-community
 langchain-openai
 langchain-text-splitters
-langchain-unstructured
-unstructured[pdf]
 langgraph
 
 # supporting libs

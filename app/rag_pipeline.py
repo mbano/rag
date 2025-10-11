@@ -1,6 +1,4 @@
-from langchain_unstructured import UnstructuredLoader
 from pathlib import Path
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chat_models import init_chat_model
@@ -9,6 +7,7 @@ from langchain_core.documents import Document
 from typing_extensions import List, TypedDict, Annotated
 from langgraph.graph import StateGraph, START
 from dotenv import load_dotenv
+import json
 import os
 
 # local fallback
@@ -23,33 +22,20 @@ LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT")
 print("OpenAI key loaded:", bool(OPENAI_API_KEY))
 print("LangSmith key loaded:", bool(LANGSMITH_API_KEY))
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR.parent / "data"
-file_path = DATA_DIR / "lancet_eat_2025.pdf"  # TODO: pull from query/other endpoint
-
-loader = UnstructuredLoader(
-    file_path=file_path,
-    strategy="hi_res",
-    infer_table_structure=True,
+ART_DIR = (
+    Path(__file__).resolve().parents[1] / "artifacts" / "faiss" / "lancet_eat_2025"
 )
 
-docs = []
+with open(ART_DIR / "manifest.json", "r") as f:
+    manifest = json.load(f)
 
-for doc in loader.lazy_load():
-    docs.append(doc)
-
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=100,
-    length_function=len,
-    separators=["\n\n", "\n", ".", "!", "?", " ", ""],
+embedding_model = manifest["embedding_model"]
+embeddings = OpenAIEmbeddings(model=embedding_model)
+vector_store = FAISS.load_local(
+    ART_DIR,
+    embeddings,
+    allow_dangerous_deserialization=True,
 )
-
-chunks = text_splitter.split_documents(docs)
-embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-large"
-)  # TODO: pull model from config
-vector_store = FAISS.from_documents(chunks, embeddings)
 
 prompt = hub.pull("rlm/rag-prompt")  # TODO: consider building own, pull from config
 llm = init_chat_model("gpt-4o-mini", model_provider="openai")  # TODO: pull from config

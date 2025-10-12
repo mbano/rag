@@ -1,3 +1,12 @@
+# large artifacts and data - these go to HF dataset repo
+data/
+artifacts/
+
+# keep small metadata files
+!data/README.md
+!artifacts/**/manifest.json
+!artifacts/README.md
+
 # Python
 __pycache__/
 *.pyc
@@ -28,6 +37,10 @@ Thumbs.db
 
 # Docker
 *.log
+
+# caches
+.mypy_cache/
+.ruff_cache/
 
 # misc
 checklist.txt

@@ -12,5 +12,8 @@ fastapi
 faiss-cpu
 python-dotenv
 
+# downloading data and artifacts
+huggingface-hub
+
 # monitoring
 langsmith

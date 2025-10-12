@@ -1,4 +1,3 @@
-from pathlib import Path
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chat_models import init_chat_model
@@ -6,6 +5,7 @@ from langchain import hub
 from langchain_core.documents import Document
 from typing_extensions import List, TypedDict, Annotated
 from langgraph.graph import StateGraph, START
+from utils.artifacts import ensure_corpus_assets
 from dotenv import load_dotenv
 import json
 import os
@@ -18,21 +18,35 @@ LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
 LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING")
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT")
 LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT")
+HF_DATASET_REPO = os.getenv("HF_DATASET_REPO")
+HF_REVISION = os.getenv("HF_DATASET_REVISION", "main")
+RAG_CORPUS = os.getenv("RAG_CORPUS", "lancet_eat_2025")
+
 
 print("OpenAI key loaded:", bool(OPENAI_API_KEY))
 print("LangSmith key loaded:", bool(LANGSMITH_API_KEY))
 
-ART_DIR = (
-    Path(__file__).resolve().parents[1] / "artifacts" / "faiss" / "lancet_eat_2025"
+
+#  TODO: remove hard-coding
+# ART_DIR = (
+#     Path(__file__).resolve().parents[1] / "artifacts" / "faiss" / "lancet_eat_2025"
+# )
+
+faiss_dir, _ = ensure_corpus_assets(
+    corpus_name=RAG_CORPUS,
+    repo_id=HF_DATASET_REPO,
+    revision=HF_REVISION,
+    want_pdf=True,
 )
 
-with open(ART_DIR / "manifest.json", "r") as f:
+with open(faiss_dir / "manifest.json", "r") as f:
     manifest = json.load(f)
 
 embedding_model = manifest["embedding_model"]
 embeddings = OpenAIEmbeddings(model=embedding_model)
+
 vector_store = FAISS.load_local(
-    ART_DIR,
+    str(faiss_dir),
     embeddings,
     allow_dangerous_deserialization=True,
 )

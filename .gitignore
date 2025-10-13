@@ -4,7 +4,6 @@ artifacts/*
 
 # keep small metadata files
 !data/README.md
-!artifacts/**/manifest.json
 !artifacts/README.md
 
 # Python

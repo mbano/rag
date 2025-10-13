@@ -33,10 +33,13 @@ def ensure_corpus_assets(
     faiss_dir = APP_ARTIFACTS_DIR / "faiss" / corpus_name
     index_faiss_path = faiss_dir / "index.faiss"
     index_pkl_path = faiss_dir / "index.pkl"
+    manifest_path = faiss_dir / "manifest.json"
     pdf_dest = APP_DATA_DIR / f"{corpus_name}.pdf"
 
     # if already present, nothing to do
-    have_faiss = index_faiss_path.exists() and index_pkl_path.exists()
+    have_faiss = (
+        index_faiss_path.exists() and index_pkl_path.exists() and manifest_path.exists()
+    )
     have_pdf = (not want_pdf) or pdf_dest.exists()
     if have_faiss and have_pdf:
         return faiss_dir, (pdf_dest if want_pdf else None)
@@ -46,6 +49,7 @@ def ensure_corpus_assets(
     patterns: Iterable[str] = [
         "indices/faiss/index.faiss",
         "indices/faiss/index.pkl",
+        "indices/faiss/manifest.json",
     ]
     if want_pdf:
         patterns = list(patterns) + [f"source_docs/pdf/{corpus_name}.pdf"]
@@ -66,6 +70,7 @@ def ensure_corpus_assets(
 
     _copy_if_missing(cache_dir / "indices" / "faiss" / "index.faiss", index_faiss_path)
     _copy_if_missing(cache_dir / "indices" / "faiss" / "index.pkl", index_pkl_path)
+    _copy_if_missing(cache_dir / "indices" / "faiss" / "manifest.json", manifest_path)
 
     if want_pdf:
         src_pdf = cache_dir / "source_docs" / "pdf" / f"{corpus_name}.pdf"

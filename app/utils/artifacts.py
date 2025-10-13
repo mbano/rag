@@ -2,6 +2,13 @@ import shutil
 from pathlib import Path
 from typing import Iterable, Tuple, Optional
 from huggingface_hub import snapshot_download
+import os
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+APP_DATA_DIR = Path(os.getenv("APP_DATA_DIR", str(PROJECT_ROOT / "data")))
+APP_ARTIFACTS_DIR = Path(
+    os.getenv("APP_ARTIFACTS_DIR", str(PROJECT_ROOT / "artifacts"))
+)
 
 
 def _copy_if_missing(src: Path, dst: Path) -> None:
@@ -23,11 +30,10 @@ def ensure_corpus_assets(
     Returns:
         (faiss_dir, pdf_path) where pdf_path may be None if want_pdf=False
     """
-    app_root = Path(__file__).resolve().parents[1].parent
-    faiss_dir = app_root / "artifacts" / "faiss" / corpus_name
+    faiss_dir = APP_ARTIFACTS_DIR / "faiss" / corpus_name
     index_faiss_path = faiss_dir / "index.faiss"
     index_pkl_path = faiss_dir / "index.pkl"
-    pdf_dest = app_root / "data" / f"{corpus_name}.pdf"
+    pdf_dest = APP_DATA_DIR / f"{corpus_name}.pdf"
 
     # if already present, nothing to do
     have_faiss = index_faiss_path.exists() and index_pkl_path.exists()

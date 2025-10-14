@@ -13,3 +13,8 @@ class QueryRequest(BaseModel):
 async def ask_question(req: QueryRequest):
     result = answer_question(req.question)
     return result
+
+
+@app.get("/")
+async def report_status():
+    return {"message": "status OK"}

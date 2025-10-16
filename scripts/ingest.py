@@ -52,11 +52,14 @@ def ingest(file_path):
 
 def _check_for_vs(file_name):
 
-    #  TODO: check for index.pkl and manifest too?
-
     for vs_path in Path(ART_DIR).glob("*"):
         if vs_path.stem == file_name:
-            return True
+            index_faiss_path = vs_path / "index.faiss"
+            index_pkl_path = vs_path / "index.pkl"
+            manifest_path = vs_path / "manifest.json"
+            return all(
+                p.exists() for p in [index_faiss_path, index_pkl_path, manifest_path]
+            )
     return False
 
 

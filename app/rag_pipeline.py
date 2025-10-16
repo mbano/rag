@@ -32,8 +32,7 @@ print("LangSmith key loaded:", bool(LANGSMITH_API_KEY))
 #     Path(__file__).resolve().parents[1] / "artifacts" / "faiss" / "lancet_eat_2025"
 # )
 
-faiss_dir, _ = ensure_corpus_assets(
-    corpus_name=RAG_CORPUS,
+faiss_dir = ensure_corpus_assets(
     repo_id=HF_DATASET_REPO,
     revision=HF_REVISION,
     want_pdf=True,
@@ -91,9 +90,12 @@ def generate(state: State):
 
     sources = []
     for doc in state["context"]:
+        file_name = doc.metadata.get("filename", "N/A")
         page_number = doc.metadata.get("page_number", "N/A")
         text = doc.page_content
-        sources.append(f"Source: page {page_number}/nText:{text}\n\n")
+        sources.append(
+            f"Source: file name: {file_name}/npage {page_number}/nText:{text}\n\n"
+        )
 
     flattened_sources = "".join(source for source in sources)
 

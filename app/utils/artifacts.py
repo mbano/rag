@@ -1,14 +1,13 @@
 import shutil
 from pathlib import Path
 from typing import Iterable, Tuple, Optional
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, HfApi
 import os
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-APP_DATA_DIR = Path(os.getenv("APP_DATA_DIR", str(PROJECT_ROOT / "data")))
-APP_ARTIFACTS_DIR = Path(
-    os.getenv("APP_ARTIFACTS_DIR", str(PROJECT_ROOT / "artifacts"))
-)
+DATA_DIR = Path(os.getenv("APP_DATA_DIR", str(PROJECT_ROOT / "data")))
+ARTIFACTS_DIR = Path(os.getenv("APP_ARTIFACTS_DIR", str(PROJECT_ROOT / "artifacts")))
+PDF_DIR = DATA_DIR / "pdf"
 
 
 def _copy_if_missing(src: Path, dst: Path) -> None:
@@ -17,47 +16,64 @@ def _copy_if_missing(src: Path, dst: Path) -> None:
         shutil.copy2(src, dst)
 
 
+def _copy_pdfs(repo_id, cache_dir):
+    """
+    Compares HF dataset repo's source_docs/pdf contents with
+    local /data/pdf and downloads any missing files
+    """
+    hf_api = HfApi()
+    files = hf_api.list_repo_files(
+        repo_id=repo_id, repo_type="dataset", revision="main"
+    )
+    pdfs = [file for file in files if ".pdf" in file]
+
+    for pdf in pdfs:
+        file_name = pdf.split("/")[-1]
+        dst = PDF_DIR / file_name
+        _copy_if_missing(cache_dir / "source_docs" / "pdf" / file_name, dst)
+
+
 def ensure_corpus_assets(
-    corpus_name: str,
     repo_id: str,
     revision: str = "main",
     want_pdf: bool = True,
 ) -> Tuple[Path, Optional[Path]]:
     """
-    Ensure FAISS index (and optional PDF) for `corpus_name` exist under artifacts/faiss/{corpus_name}.
+    Ensure FAISS vector store (and optional PDF) exists under artifacts/faiss/
+    (this location implies a merged vector).
     If missing, download from HF dataset repo into the local hub cache, then copy into artifacts.
 
     Returns:
         (faiss_dir, pdf_path) where pdf_path may be None if want_pdf=False
     """
-    faiss_dir = APP_ARTIFACTS_DIR / "faiss" / corpus_name
+    faiss_dir = ARTIFACTS_DIR / "faiss"
     index_faiss_path = faiss_dir / "index.faiss"
     index_pkl_path = faiss_dir / "index.pkl"
     manifest_path = faiss_dir / "manifest.json"
-    pdf_dest = APP_DATA_DIR / f"{corpus_name}.pdf"
 
     # if already present, nothing to do
     have_faiss = (
         index_faiss_path.exists() and index_pkl_path.exists() and manifest_path.exists()
     )
-    have_pdf = (not want_pdf) or pdf_dest.exists()
-    if have_faiss and have_pdf:
-        return faiss_dir, (pdf_dest if want_pdf else None)
+
+    if have_faiss and not want_pdf:
+        return faiss_dir
 
     # otherwise only download missing files
     # #  TODO: will need to modify HF repo structure to allow indices for other corpora
-    patterns: Iterable[str] = [
-        "indices/faiss/index.faiss",
-        "indices/faiss/index.pkl",
-        "indices/faiss/manifest.json",
-    ]
-    if want_pdf:
-        patterns = list(patterns) + [f"source_docs/pdf/{corpus_name}.pdf"]
+    patterns: Iterable[str] = []
+    if not have_faiss:
+        vector_store_patterns = [
+            "vector_stores/faiss/index.faiss",
+            "vector_stores/faiss/index.pkl",
+            "vector_stores/faiss/manifest.json",
+        ]
+        patterns = list(patterns) + vector_store_patterns
 
-    print(
-        f"[artifacts] Downloading missing assets for '{corpus_name}'"
-        f"from '{repo_id}' ({revision})..."
-    )
+    if want_pdf:
+        patterns = list(patterns) + ["source_docs/pdf/*.pdf"]
+
+    print(f"[artifacts] Downloading missing assets from '{repo_id}' ({revision})...")
 
     cache_dir = Path(
         snapshot_download(
@@ -68,13 +84,18 @@ def ensure_corpus_assets(
         )
     )
 
-    _copy_if_missing(cache_dir / "indices" / "faiss" / "index.faiss", index_faiss_path)
-    _copy_if_missing(cache_dir / "indices" / "faiss" / "index.pkl", index_pkl_path)
-    _copy_if_missing(cache_dir / "indices" / "faiss" / "manifest.json", manifest_path)
+    _copy_if_missing(
+        cache_dir / "vector_stores" / "faiss" / "index.faiss", index_faiss_path
+    )
+    _copy_if_missing(
+        cache_dir / "vector_stores" / "faiss" / "index.pkl", index_pkl_path
+    )
+    _copy_if_missing(
+        cache_dir / "vector_stores" / "faiss" / "manifest.json", manifest_path
+    )
 
     if want_pdf:
-        src_pdf = cache_dir / "source_docs" / "pdf" / f"{corpus_name}.pdf"
-        _copy_if_missing(src_pdf, pdf_dest)
+        _copy_pdfs(repo_id, cache_dir)
 
     print(f"[artifacts] Ready: {faiss_dir}")
-    return faiss_dir, (pdf_dest if want_pdf else None)
+    return faiss_dir

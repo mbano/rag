@@ -27,11 +27,6 @@ print("OpenAI key loaded:", bool(OPENAI_API_KEY))
 print("LangSmith key loaded:", bool(LANGSMITH_API_KEY))
 
 
-#  TODO: remove hard-coding
-# ART_DIR = (
-#     Path(__file__).resolve().parents[1] / "artifacts" / "faiss" / "lancet_eat_2025"
-# )
-
 faiss_dir = ensure_corpus_assets(
     repo_id=HF_DATASET_REPO,
     revision=HF_REVISION,
@@ -90,12 +85,12 @@ def generate(state: State):
 
     sources = []
     for doc in state["context"]:
-        file_name = doc.metadata.get("filename", "N/A")
-        page_number = doc.metadata.get("page_number", "N/A")
+        file_name = doc.metadata.get("filename", None)
+        page_number = doc.metadata.get("page_number", None)
+        url = doc.metadata.get("url", None)
+        source = file_name or url
         text = doc.page_content
-        sources.append(
-            f"Source: file name: {file_name}/npage {page_number}/nText:{text}\n\n"
-        )
+        sources.append(f"Source: {source}/npage {page_number}/nText:{text}\n\n")
 
     flattened_sources = "".join(source for source in sources)
 

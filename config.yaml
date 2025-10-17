@@ -7,8 +7,10 @@ vector_store: "faiss"
 #  using UnstructuredLoader
 loader_name: "UnstructuredLoader"
 loader_params:
-  strategy: "hi_res"
-  chunking_strategy: "by_title"
-  infer_table_structure: true
-  max_characters: 500
-  overlap: 0
+  pdf:
+    strategy: "hi_res"
+    chunking_strategy: "by_title"
+    infer_table_structure: true
+    max_characters: 500
+    overlap: 0
+  web:

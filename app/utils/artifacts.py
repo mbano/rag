@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Iterable, Tuple, Optional
 from huggingface_hub import snapshot_download, HfApi
 import os
+import json
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.getenv("APP_DATA_DIR", str(PROJECT_ROOT / "data")))
@@ -31,6 +32,29 @@ def _copy_pdfs(repo_id, cache_dir):
         file_name = pdf.split("/")[-1]
         dst = PDF_DIR / file_name
         _copy_if_missing(cache_dir / "source_docs" / "pdf" / file_name, dst)
+
+
+def _check_for_pdfs():
+    """
+    Checks if every folder in ART_DIR/faiss that was built from a pdf
+    has a corresponding file in DATA_DIR/pdf
+
+    Returns a list of pdfs to download
+    """
+    faiss_dir = ARTIFACTS_DIR / "faiss"
+    vs_subdirs = [path for path in faiss_dir.iterdir() if path.is_dir()]
+    pdfs_to_look_for = []
+
+    for dir in vs_subdirs:
+        with open(dir / "manifest.json", "r") as f:
+            manifest = json.load(f)
+        if ".pdf" in manifest.get("source_file", "N/A"):
+            pdfs_to_look_for.append(manifest.get("source_file"))
+
+    local_pdfs = [pdf.name for pdf in Path(PDF_DIR).glob("*.pdf")]
+    pdfs_to_download = list(set(pdfs_to_look_for).difference(set(local_pdfs)))
+
+    return pdfs_to_download
 
 
 def ensure_corpus_assets(
@@ -71,7 +95,13 @@ def ensure_corpus_assets(
         patterns = list(patterns) + vector_store_patterns
 
     if want_pdf:
-        patterns = list(patterns) + ["source_docs/pdf/*.pdf"]
+        #  check if pdfs exist locally
+        ##  if so, there should be one per folder in ART_DIR/faiss/
+        pdfs_to_download = _check_for_pdfs()
+        if have_faiss and not pdfs_to_download:
+            return faiss_dir
+        if pdfs_to_download:
+            patterns = list(patterns) + ["source_docs/pdf/*.pdf"]
 
     print(f"[artifacts] Downloading missing assets from '{repo_id}' ({revision})...")
 
@@ -99,3 +129,6 @@ def ensure_corpus_assets(
 
     print(f"[artifacts] Ready: {faiss_dir}")
     return faiss_dir
+
+
+#  TODO: add download/sync with other file types

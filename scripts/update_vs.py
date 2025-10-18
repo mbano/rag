@@ -8,6 +8,7 @@ import os
 from app.config import EMBEDDING_MODEL, VECTOR_STORE, LOADER_NAME, LOADER_PARAMS
 from datetime import datetime, timezone
 from app.utils.url_utils import url_to_resource_name
+from app.utils.doc_utils import clean_pdf_doc, filter_web_docs, clean_web_doc
 
 # local fallback
 load_dotenv()
@@ -29,6 +30,13 @@ def ingest(file_path, mode: str):
             file_path=file_path,
             **LOADER_PARAMS["pdf"],
         )
+
+        docs = []
+        for doc in loader.lazy_load():
+            docs.append(doc)
+
+        clean_docs = [clean_pdf_doc(doc) for doc in docs]
+
         dest_dir = f"{ART_DIR}/{file_path.stem}"
         manifest = {
             "embedding_model": EMBEDDING_MODEL,
@@ -43,6 +51,14 @@ def ingest(file_path, mode: str):
         loader = UnstructuredLoader(
             web_url=url,
         )
+
+        docs = []
+        for doc in loader.lazy_load():
+            docs.append(doc)
+
+        filtered_docs = filter_web_docs(docs)
+        clean_docs = [clean_web_doc(doc) for doc in filtered_docs]
+
         resource_name = url_to_resource_name(url)
         dest_dir = f"{ART_DIR}/{resource_name}"
         manifest = {
@@ -56,8 +72,10 @@ def ingest(file_path, mode: str):
     for doc in loader.lazy_load():
         docs.append(doc)
 
+    #  TODO: Clean/filter docs before embedding
+
     embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
-    vector_store = FAISS.from_documents(docs, embeddings)
+    vector_store = FAISS.from_documents(clean_docs, embeddings)
     vector_store.save_local(dest_dir)
 
     with open(f"{dest_dir}/manifest.json", "w") as f:

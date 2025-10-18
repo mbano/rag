@@ -14,3 +14,6 @@ loader_params:
     max_characters: 500
     overlap: 0
   web:
+retriever_params:
+  k: 10
+reranking_model: "BAAI/bge-reranker-large"

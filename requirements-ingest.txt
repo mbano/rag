@@ -2,3 +2,4 @@
 unstructured[pdf]
 langchain-unstructured
 torch
+ftfy

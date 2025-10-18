@@ -10,6 +10,7 @@ COPY requirements.txt /requirements.txt
 RUN pip install --no-cache-dir -r /requirements.txt
 
 COPY app .
+COPY /config.yaml /config.yaml
 
 # copy /data and /artifacts as non-root user to make them writable for HF
 COPY --chown=${APP_USER}:${APP_USER} /data /data

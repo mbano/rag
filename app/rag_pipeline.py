@@ -1,11 +1,14 @@
+from langchain import hub
+from langchain.chat_models import init_chat_model
+from langchain_cohere import CohereRerank
+from langchain.retrievers import ContextualCompressionRetriever
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain.chat_models import init_chat_model
-from langchain import hub
 from langchain_core.documents import Document
-from typing_extensions import List, TypedDict, Annotated
+from typing_extensions import TypedDict, Annotated
 from langgraph.graph import StateGraph, START
 from utils.artifacts import ensure_corpus_assets
+from config import RETRIEVER_PARAMS, RERANKER_PARAMS
 from dotenv import load_dotenv
 import json
 import os
@@ -14,18 +17,16 @@ import os
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
 LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING")
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT")
 LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT")
 HF_DATASET_REPO = os.getenv("HF_DATASET_REPO")
 HF_REVISION = os.getenv("HF_DATASET_REVISION", "main")
-RAG_CORPUS = os.getenv("RAG_CORPUS", "lancet_eat_2025")
-
 
 print("OpenAI key loaded:", bool(OPENAI_API_KEY))
 print("LangSmith key loaded:", bool(LANGSMITH_API_KEY))
-
 
 faiss_dir = ensure_corpus_assets(
     repo_id=HF_DATASET_REPO,
@@ -44,6 +45,13 @@ vector_store = FAISS.load_local(
     embeddings,
     allow_dangerous_deserialization=True,
 )
+retriever = vector_store.as_retriever(search_kwargs=RETRIEVER_PARAMS)
+
+reranker = CohereRerank(**RERANKER_PARAMS)
+rerank_retriever = ContextualCompressionRetriever(
+    base_compressor=reranker,
+    base_retriever=retriever,
+)
 
 prompt = hub.pull("rlm/rag-prompt")  # TODO: consider building own, pull from config
 llm = init_chat_model("gpt-4o-mini", model_provider="openai")  # TODO: pull from config
@@ -58,7 +66,7 @@ class Search(TypedDict):
 class State(TypedDict):
     question: str
     query: Search
-    context: List[Document]
+    context: list[Document]
     answer: str
 
 
@@ -71,9 +79,7 @@ def analyze_query(state: State):
 
 def retrieve(state: State):
     query = state["query"]
-    retrieved_docs = vector_store.similarity_search(
-        query["query"]
-    )  # TODO: pull k from config
+    retrieved_docs = rerank_retriever.invoke(query["query"])
 
     return {"context": retrieved_docs}
 

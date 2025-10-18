@@ -16,4 +16,7 @@ loader_params:
   web:
 retriever_params:
   k: 10
-reranking_model: "BAAI/bge-reranker-large"
+reranker_name: "CohereRerank"
+reranker_params:
+  model: "rerank-v3.5"
+  top_n: 4

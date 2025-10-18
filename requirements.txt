@@ -1,16 +1,18 @@
 # core Langchain ecosystem
-langchain
+langchain==0.3.27
 langchain-core
 langchain-community
 langchain-openai
 langchain-text-splitters
 langgraph
+langchain-cohere
 
 # supporting libs
 uvicorn[standard]
 fastapi
 faiss-cpu
 python-dotenv
+#sentence-transformers
 
 # downloading data and artifacts
 huggingface-hub

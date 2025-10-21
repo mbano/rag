@@ -2,13 +2,13 @@ import shutil
 from pathlib import Path
 from typing import Iterable, Tuple, Optional
 from huggingface_hub import snapshot_download, HfApi
-import os
 import json
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = Path(os.getenv("APP_DATA_DIR", str(PROJECT_ROOT / "data")))
-ARTIFACTS_DIR = Path(os.getenv("APP_ARTIFACTS_DIR", str(PROJECT_ROOT / "artifacts")))
+BASE_DIR = Path(__file__).resolve().parents[2]
+DATA_DIR = BASE_DIR / "data"
 PDF_DIR = DATA_DIR / "pdf"
+ART_DIR = BASE_DIR / "artifacts"
+DOC_DIR = ART_DIR / "documents"
 
 
 def _copy_if_missing(src: Path, dst: Path) -> None:
@@ -41,7 +41,7 @@ def _check_for_pdfs():
 
     Returns a list of pdfs to download
     """
-    faiss_dir = ARTIFACTS_DIR / "faiss"
+    faiss_dir = ART_DIR / "faiss"
     vs_subdirs = [path for path in faiss_dir.iterdir() if path.is_dir()]
     pdfs_to_look_for = []
 
@@ -57,6 +57,20 @@ def _check_for_pdfs():
     return pdfs_to_download
 
 
+def _check_for_docs():
+    """
+    Checks if every folder in ART_DIR/faiss that was built from a pdf
+    has a corresponding folder and documents.jsonl file in DATA_DIR/documents
+
+    Returns a list of file or resource names whose documents are missing locally
+    """
+    faiss_dir = ART_DIR / "faiss"
+    missing_docs = []
+    for subdir in faiss_dir.glob("*/"):
+        if not (DOC_DIR / subdir.stem / "documents.jsonl").exists():
+            missing_docs.append(subdir.stem)
+
+
 def ensure_corpus_assets(
     repo_id: str,
     revision: str = "main",
@@ -64,16 +78,19 @@ def ensure_corpus_assets(
 ) -> Tuple[Path, Optional[Path]]:
     """
     Ensure FAISS vector store (and optional PDF) exists under artifacts/faiss/
-    (this location implies a merged vector).
+    (this location implies a merged vector store).
     If missing, download from HF dataset repo into the local hub cache, then copy into artifacts.
 
     Returns:
         (faiss_dir, pdf_path) where pdf_path may be None if want_pdf=False
     """
-    faiss_dir = ARTIFACTS_DIR / "faiss"
+    faiss_dir = ART_DIR / "faiss"
     index_faiss_path = faiss_dir / "index.faiss"
     index_pkl_path = faiss_dir / "index.pkl"
     manifest_path = faiss_dir / "manifest.json"
+    docs_path = ART_DIR / "documents"
+
+    download_docs = False
 
     # if already present, nothing to do
     have_faiss = (
@@ -92,7 +109,13 @@ def ensure_corpus_assets(
             "vector_stores/faiss/index.pkl",
             "vector_stores/faiss/manifest.json",
         ]
-        patterns = list(patterns) + vector_store_patterns
+        docs_to_download = _check_for_docs()
+        doc_patterns = [
+            f"vector_stores/documents/{doc}/documents.jsonl" for doc in docs_to_download
+        ]
+        patterns = list(patterns) + vector_store_patterns + doc_patterns
+        download_docs = bool(docs_to_download)
+        print(f"Download docs: {bool(docs_to_download)}")
 
     if want_pdf:
         #  check if pdfs exist locally
@@ -123,6 +146,12 @@ def ensure_corpus_assets(
     _copy_if_missing(
         cache_dir / "vector_stores" / "faiss" / "manifest.json", manifest_path
     )
+    if download_docs:
+        print(f"Downloading docs: {download_docs}")
+        for p in docs_to_download:
+            src = Path(p)
+            dst = docs_path / src.stem / "documents.jsonl"
+            _copy_if_missing(cache_dir / src, dst)
 
     if want_pdf:
         _copy_pdfs(repo_id, cache_dir)

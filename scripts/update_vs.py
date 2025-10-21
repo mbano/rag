@@ -2,13 +2,14 @@ from langchain_unstructured import UnstructuredLoader
 from pathlib import Path
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
 from dotenv import load_dotenv
 import json
 import os
 from app.config import EMBEDDING_MODEL, VECTOR_STORE, LOADER_NAME, LOADER_PARAMS
 from datetime import datetime, timezone
-from app.utils.url_utils import url_to_resource_name
-from app.utils.doc_utils import clean_pdf_doc, filter_web_docs, clean_web_doc
+from app.utils.urls import url_to_resource_name
+from app.utils.docs import clean_pdf_doc, filter_web_docs, clean_web_doc
 
 # local fallback
 load_dotenv()
@@ -18,7 +19,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 PDF_DIR = DATA_DIR / "pdf"
-ART_DIR = BASE_DIR / "artifacts" / VECTOR_STORE
+ART_DIR = BASE_DIR / "artifacts"
+VS_DIR = ART_DIR / VECTOR_STORE
+DOC_DIR = ART_DIR / "documents"
 
 
 def ingest(file_path, mode: str):
@@ -36,8 +39,11 @@ def ingest(file_path, mode: str):
             docs.append(doc)
 
         clean_docs = [clean_pdf_doc(doc) for doc in docs]
+        art_dest_dir = f"{VS_DIR}/{file_path.stem}"
+        doc_dest_dir = f"{DOC_DIR}/{file_path.stem}"
 
-        dest_dir = f"{ART_DIR}/{file_path.stem}"
+        _save_docs(clean_docs, doc_dest_dir)
+
         manifest = {
             "embedding_model": EMBEDDING_MODEL,
             "loader_name": LOADER_NAME,
@@ -60,7 +66,11 @@ def ingest(file_path, mode: str):
         clean_docs = [clean_web_doc(doc) for doc in filtered_docs]
 
         resource_name = url_to_resource_name(url)
-        dest_dir = f"{ART_DIR}/{resource_name}"
+        art_dest_dir = f"{VS_DIR}/{resource_name}"
+        doc_dest_dir = f"{DOC_DIR}/{resource_name}"
+
+        _save_docs(clean_docs, doc_dest_dir)
+
         manifest = {
             "embedding_model": EMBEDDING_MODEL,
             "loader_name": LOADER_NAME,
@@ -68,24 +78,30 @@ def ingest(file_path, mode: str):
             "last_indexed": datetime.now(timezone.utc).isoformat(),
         }
 
-    docs = []
-    for doc in loader.lazy_load():
-        docs.append(doc)
-
-    #  TODO: Clean/filter docs before embedding
-
     embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
     vector_store = FAISS.from_documents(clean_docs, embeddings)
-    vector_store.save_local(dest_dir)
+    vector_store.save_local(art_dest_dir)
 
-    with open(f"{dest_dir}/manifest.json", "w") as f:
+    with open(f"{art_dest_dir}/manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
-        print(f"Saved FAISS index to {ART_DIR}")
+        print(f"Saved FAISS index to {VS_DIR}")
+
+
+def _save_docs(documents: list[Document], path: str | None = None):
+
+    path = DOC_DIR if not path else path
+    filename = f"{path}/documents.jsonl"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+    with open(filename, "w", encoding="utf-8") as f:
+        for doc in documents:
+            json.dump({"page_content": doc.page_content, "metadata": doc.metadata}, f)
+            f.write("\n")
 
 
 def _check_for_vs(file_name):
 
-    for vs_path in Path(ART_DIR).glob("*"):
+    for vs_path in Path(VS_DIR).glob("*"):
         if vs_path.stem == file_name:
             index_faiss_path = vs_path / "index.faiss"
             index_pkl_path = vs_path / "index.pkl"
@@ -101,7 +117,7 @@ def _merge_vector_stores():
     vector_stores = []
     file_names = []
 
-    for vs_path in Path(ART_DIR).glob("*/"):
+    for vs_path in Path(VS_DIR).glob("*/"):
         vector_store = FAISS.load_local(
             vs_path,
             embeddings,
@@ -118,7 +134,7 @@ def _merge_vector_stores():
     main_vs = vector_stores[0]
     for vs in vector_stores[1:]:
         main_vs.merge_from(vs)
-    main_vs.save_local(ART_DIR)
+    main_vs.save_local(VS_DIR)
 
     manifest = {
         "embedding_model": EMBEDDING_MODEL,
@@ -128,27 +144,8 @@ def _merge_vector_stores():
         "last_indexed": datetime.now(timezone.utc).isoformat(),
     }
     manifest.update(LOADER_PARAMS)
-    with open(Path(ART_DIR) / "manifest.json", "w") as f:
+    with open(Path(VS_DIR) / "manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
-
-
-def update_pdf_vector_stores():
-
-    added_vs = False
-
-    for file_path in Path(PDF_DIR).glob("*.pdf"):
-        pdf_name = file_path.stem
-        has_index = _check_for_vs(pdf_name)
-        if not has_index:
-            ingest(file_path)
-            print(f"Added document: {pdf_name}")
-            added_vs = True
-
-    if added_vs:
-        _merge_vector_stores()
-        print("Merged existing vector stores.")
-    else:
-        print("No new documents to add.")
 
 
 def update_vector_stores():

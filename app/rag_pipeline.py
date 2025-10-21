@@ -1,14 +1,17 @@
 from langchain import hub
 from langchain.chat_models import init_chat_model
 from langchain_cohere import CohereRerank
-from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers import ContextualCompressionRetriever, EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from typing_extensions import TypedDict, Annotated
 from langgraph.graph import StateGraph, START
 from utils.artifacts import ensure_corpus_assets
-from config import RETRIEVER_PARAMS, RERANKER_PARAMS
+from utils.docs import load_docs
+from utils.text import clean_tokens
+from config import RETRIEVER_PARAMS, RERANKER_PARAMS, SPARSE_RETRIEVER_PARAMS
 from dotenv import load_dotenv
 import json
 import os
@@ -45,16 +48,26 @@ vector_store = FAISS.load_local(
     embeddings,
     allow_dangerous_deserialization=True,
 )
-retriever = vector_store.as_retriever(search_kwargs=RETRIEVER_PARAMS)
+dense_retriever = vector_store.as_retriever(search_kwargs=RETRIEVER_PARAMS)
+docs = load_docs()
+sparse_retriever = BM25Retriever.from_documents(
+    docs,
+    **SPARSE_RETRIEVER_PARAMS,
+    preprocess_func=clean_tokens,
+)
+hybrid_retriever = EnsembleRetriever(
+    retrievers=[dense_retriever, sparse_retriever],
+    weights=[0.6, 0.4],  #  TODO: pull from config
+)
 
 reranker = CohereRerank(**RERANKER_PARAMS)
 rerank_retriever = ContextualCompressionRetriever(
     base_compressor=reranker,
-    base_retriever=retriever,
+    base_retriever=hybrid_retriever,
 )
 
-prompt = hub.pull("rlm/rag-prompt")  # TODO: consider building own, pull from config
-llm = init_chat_model("gpt-4o-mini", model_provider="openai")  # TODO: pull from config
+prompt = hub.pull("rlm/rag-prompt")  #  TODO: consider building own, pull from config
+llm = init_chat_model("gpt-4o-mini", model_provider="openai")  #  TODO: pull from config
 
 
 class Search(TypedDict):

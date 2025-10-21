@@ -7,12 +7,15 @@ langchain-text-splitters
 langgraph
 langchain-cohere
 
+
 # supporting libs
 uvicorn[standard]
 fastapi
 faiss-cpu
 python-dotenv
-#sentence-transformers
+ftfy
+rank-bm25
+nltk
 
 # downloading data and artifacts
 huggingface-hub

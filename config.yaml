@@ -16,6 +16,9 @@ loader_params:
   web:
 retriever_params:
   k: 10
+sparse_retriever_name: 'BM25'
+sparse_retriever_params:
+  k: 8
 reranker_name: "CohereRerank"
 reranker_params:
   model: "rerank-v3.5"

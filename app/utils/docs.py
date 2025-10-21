@@ -1,5 +1,10 @@
 from langchain_core.documents import Document
 from ftfy import fix_text
+from pathlib import Path
+import json
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+DOC_DIR = BASE_DIR / "artifacts" / "documents"
 
 
 #  TODO: add min chunk length filtering
@@ -68,3 +73,21 @@ def clean_web_doc(doc: Document):
     clean_doc.page_content = _clean_text(doc.page_content)
 
     return clean_doc
+
+
+def load_docs(filename: str | None = None):
+    """
+    Load document object pertaining to file filename.
+    If no filename is given, load all documents in /artifacts/documents
+
+    Return a list of documents.
+    """
+    #  TODO: implement loading only docs from filename
+
+    docs = []
+    for dir in DOC_DIR.glob("*/"):
+        with open(dir / "documents.jsonl", "r", encoding="utf-8") as f:
+            for line in f:
+                data = json.loads(line)
+                docs.append(Document(**data))
+    return docs

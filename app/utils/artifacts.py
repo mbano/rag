@@ -69,7 +69,7 @@ def _check_for_docs():
     missing_docs = []
     for subdir in faiss_dir.glob("*/"):
         if not (DOC_DIR / subdir.stem / "documents.jsonl").exists():
-            print(f"_check_for_docs: no {DOC_DIR / subdir.stem / "documents.jsonl"}")
+            print(f"_check_for_docs: no {DOC_DIR / subdir.stem / 'documents.jsonl'}")
             missing_docs.append(subdir.stem)
     return missing_docs
 

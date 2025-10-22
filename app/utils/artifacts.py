@@ -75,6 +75,7 @@ def _check_for_docs():
 def ensure_corpus_assets(
     repo_id: str,
     revision: str = "main",
+    want_docs: bool = True,
     want_pdf: bool = True,
 ) -> Tuple[Path, Optional[Path]]:
     """
@@ -91,17 +92,15 @@ def ensure_corpus_assets(
     manifest_path = faiss_dir / "manifest.json"
     docs_path = ART_DIR / "documents"
 
-    download_docs = False
-
     # if already present, nothing to do
     have_faiss = (
         index_faiss_path.exists() and index_pkl_path.exists() and manifest_path.exists()
     )
 
-    if have_faiss and not want_pdf:
+    if have_faiss and not want_docs and not want_pdf:
         return faiss_dir
 
-    # otherwise only download missing files
+    # otherwise only download missing vector store files
     # #  TODO: will need to modify HF repo structure to allow indices for other corpora
     patterns: Iterable[str] = []
     if not have_faiss:
@@ -110,22 +109,7 @@ def ensure_corpus_assets(
             "vector_stores/faiss/index.pkl",
             "vector_stores/faiss/manifest.json",
         ]
-        docs_to_download = _check_for_docs()
-        doc_patterns = [
-            f"vector_stores/documents/{doc}/documents.jsonl" for doc in docs_to_download
-        ]
-        patterns = list(patterns) + vector_store_patterns + doc_patterns
-        download_docs = bool(docs_to_download)
-        print(f"Download docs: {bool(docs_to_download)}")
-
-    if want_pdf:
-        #  check if pdfs exist locally
-        ##  if so, there should be one per folder in ART_DIR/faiss/
-        pdfs_to_download = _check_for_pdfs()
-        if have_faiss and not pdfs_to_download:
-            return faiss_dir
-        if pdfs_to_download:
-            patterns = list(patterns) + ["source_docs/pdf/*.pdf"]
+        patterns = list(patterns) + vector_store_patterns
 
     print(f"[artifacts] Downloading missing assets from '{repo_id}' ({revision})...")
 
@@ -147,14 +131,39 @@ def ensure_corpus_assets(
     _copy_if_missing(
         cache_dir / "vector_stores" / "faiss" / "manifest.json", manifest_path
     )
-    if download_docs:
-        print(f"Downloading docs: {download_docs}")
-        for p in docs_to_download:
-            src = Path(p)
-            dst = docs_path / src.stem / "documents.jsonl"
-            _copy_if_missing(cache_dir / src, dst)
+
+    # only download missing docs and pdfs
+
+    patterns = []
+    docs_to_download = _check_for_docs()
+    if docs_to_download:
+        doc_patterns = [
+            f"vector_stores/documents/{doc}/documents.jsonl" for doc in docs_to_download
+        ]
+        patterns = patterns + doc_patterns
 
     if want_pdf:
+        pdfs_to_download = _check_for_pdfs()
+        if pdfs_to_download:
+            pdf_pattern = "source_docs/pdf/*.pdf"
+            patterns = patterns + [pdf_pattern]
+
+    if patterns:
+        cache_dir = Path(
+            snapshot_download(
+                repo_id=repo_id,
+                repo_type="dataset",
+                revision=revision,
+                allow_patterns=list(patterns),
+            )
+        )
+
+        print(f"Downloading docs: {docs_to_download}")
+        for src, name in zip(doc_patterns, docs_to_download):
+            dst = docs_path / name / "documents.jsonl"
+            _copy_if_missing(cache_dir / src, dst)
+
+        print(f"Downloading pdfs: {pdfs_to_download}")
         _copy_pdfs(repo_id, cache_dir)
 
     print(f"[artifacts] Ready: {faiss_dir}")

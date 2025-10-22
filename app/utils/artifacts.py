@@ -53,6 +53,7 @@ def _check_for_pdfs():
 
     local_pdfs = [pdf.name for pdf in Path(PDF_DIR).glob("*.pdf")]
     pdfs_to_download = list(set(pdfs_to_look_for).difference(set(local_pdfs)))
+    print(f"_check_for_pdfs: local - {local_pdfs}, dl - {pdfs_to_download}")
 
     return pdfs_to_download
 
@@ -68,6 +69,7 @@ def _check_for_docs():
     missing_docs = []
     for subdir in faiss_dir.glob("*/"):
         if not (DOC_DIR / subdir.stem / "documents.jsonl").exists():
+            print(f"_check_for_docs: no {DOC_DIR / subdir.stem / "documents.jsonl"}")
             missing_docs.append(subdir.stem)
     return missing_docs
 

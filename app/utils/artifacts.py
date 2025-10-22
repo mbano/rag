@@ -69,6 +69,7 @@ def _check_for_docs():
     for subdir in faiss_dir.glob("*/"):
         if not (DOC_DIR / subdir.stem / "documents.jsonl").exists():
             missing_docs.append(subdir.stem)
+    return missing_docs
 
 
 def ensure_corpus_assets(

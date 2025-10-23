@@ -31,10 +31,10 @@ HF_REVISION = os.getenv("HF_DATASET_REVISION", "main")
 print("OpenAI key loaded:", bool(OPENAI_API_KEY))
 print("LangSmith key loaded:", bool(LANGSMITH_API_KEY))
 
-faiss_dir = ensure_corpus_assets(
+faiss_dir, doc_dir = ensure_corpus_assets(
     repo_id=HF_DATASET_REPO,
     revision=HF_REVISION,
-    want_pdf=True,
+    want_sources=True,
 )
 
 with open(faiss_dir / "manifest.json", "r") as f:
@@ -49,7 +49,7 @@ vector_store = FAISS.load_local(
     allow_dangerous_deserialization=True,
 )
 dense_retriever = vector_store.as_retriever(search_kwargs=RETRIEVER_PARAMS)
-docs = load_docs()
+docs = load_docs(doc_dir)
 sparse_retriever = BM25Retriever.from_documents(
     docs,
     **SPARSE_RETRIEVER_PARAMS,

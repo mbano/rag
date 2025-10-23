@@ -75,7 +75,7 @@ def clean_web_doc(doc: Document):
     return clean_doc
 
 
-def load_docs(filename: str | None = None):
+def load_docs(doc_dir: Path = DOC_DIR, filename: str | None = None):
     """
     Load document object pertaining to file filename.
     If no filename is given, load all documents in /artifacts/documents
@@ -85,7 +85,7 @@ def load_docs(filename: str | None = None):
     #  TODO: implement loading only docs from filename
 
     docs = []
-    for dir in DOC_DIR.glob("*/"):
+    for dir in doc_dir.glob("*/"):
         with open(dir / "documents.jsonl", "r", encoding="utf-8") as f:
             for line in f:
                 data = json.loads(line)

@@ -18,7 +18,7 @@ rank-bm25
 nltk
 
 # downloading data and artifacts
-huggingface-hub
+huggingface-hub[hf_transfer]
 
 # monitoring
 langsmith

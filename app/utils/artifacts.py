@@ -1,8 +1,11 @@
 import shutil
 from pathlib import Path
 from huggingface_hub import snapshot_download, HfFileSystem
+from dotenv import load_dotenv
 import json
 import os
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data"
@@ -123,7 +126,8 @@ def ensure_corpus_assets(
         patterns.extend(vector_store_patterns)
 
     doc_patterns = [str(p) for p in _check_for_docs(remote_filesystem)]
-    patterns.extend(doc_patterns)
+    if doc_patterns:
+        patterns.extend(doc_patterns)
 
     if want_sources:
         pdfs_to_download = [str(p) for p in _check_for_pdfs(remote_filesystem)]

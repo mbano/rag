@@ -82,6 +82,7 @@ def load_docs(doc_dir: Path = DOC_DIR, filename: str | None = None):
 
     Return a list of documents.
     """
+
     #  TODO: implement loading only docs from filename
 
     docs = []

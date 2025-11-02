@@ -8,10 +8,10 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from typing_extensions import TypedDict, Annotated
 from langgraph.graph import StateGraph, START
-from utils.artifacts import ensure_corpus_assets
-from utils.docs import load_docs
-from utils.text import clean_tokens
-from config import RETRIEVER_PARAMS, RERANKER_PARAMS, SPARSE_RETRIEVER_PARAMS
+from app.utils.artifacts import ensure_corpus_assets
+from app.utils.docs import load_docs
+from app.utils.text import clean_tokens
+from app.config import RETRIEVER_PARAMS, RERANKER_PARAMS, SPARSE_RETRIEVER_PARAMS
 from dotenv import load_dotenv
 import json
 import os

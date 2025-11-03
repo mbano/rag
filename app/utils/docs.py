@@ -2,6 +2,7 @@ from langchain_core.documents import Document
 from ftfy import fix_text
 from pathlib import Path
 import json
+import os
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DOC_DIR = BASE_DIR / "artifacts" / "documents"
@@ -92,3 +93,18 @@ def load_docs(doc_dir: Path = DOC_DIR, filename: str | None = None):
                 data = json.loads(line)
                 docs.append(Document(**data))
     return docs
+
+
+def save_docs(documents: list[Document], path: str | None = None):
+    """
+    Save documents to a jsonl file
+    """
+
+    path = DOC_DIR if not path else path
+    filename = f"{path}/documents.jsonl"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+    with open(filename, "w", encoding="utf-8") as f:
+        for doc in documents:
+            json.dump({"page_content": doc.page_content, "metadata": doc.metadata}, f)
+            f.write("\n")

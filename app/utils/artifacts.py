@@ -138,6 +138,7 @@ def ensure_corpus_assets(
             try:
                 with open(WEB_DIR / "urls.json", "r+") as f:
                     urls = json.load(f)
+                    f.seek(0)
                     urls["urls"].extend(urls_to_copy)
                     json.dump(urls, f)
             except FileNotFoundError:

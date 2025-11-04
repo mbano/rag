@@ -81,6 +81,7 @@ class State(TypedDict):
     query: Search
     context: list[Document]
     answer: str
+    metadata: dict
 
 
 def analyze_query(state: State):
@@ -98,22 +99,21 @@ def retrieve(state: State):
 
 
 def generate(state: State):
-    context = "".join(doc.page_content for doc in state["context"])
+    context = "".join(doc.page_content + " " for doc in state["context"])
     messages = prompt.invoke({"question": state["question"], "context": context})
     response = llm.invoke(messages)
 
-    sources = []
+    contexts = []
     for doc in state["context"]:
-        file_name = doc.metadata.get("filename", None)
-        page_number = doc.metadata.get("page_number", None)
-        url = doc.metadata.get("url", None)
-        source = file_name or url
-        text = doc.page_content
-        sources.append(f"Source: {source}/npage {page_number}/nText:{text}\n\n")
+        context = {}
+        context["text"] = doc.page_content
+        context.update(doc.metadata)
+        contexts.append(context)
 
-    flattened_sources = "".join(source for source in sources)
+    metadata = {"model_name": response.response_metadata["model_name"]}
 
-    return {"answer": response.content + "\n\n" + flattened_sources}
+    answer = {"answer": response.content, "context": contexts, "metadata": metadata}
+    return answer
 
 
 graph_builder = StateGraph(State).add_sequence([analyze_query, retrieve, generate])
@@ -124,4 +124,4 @@ graph = graph_builder.compile()
 def answer_question(question: str):
     result = graph.invoke({"question": question})
 
-    return {"answer": result["answer"]}
+    return result

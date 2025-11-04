@@ -20,7 +20,7 @@ VS_DIR = ART_DIR / VECTOR_STORE
 DOC_DIR = ART_DIR / "documents"
 
 
-def ingest_web(url, mode: str):
+def ingest_web(url):
     """
     Create and store a vector store index for the web page at url, along with
     the corresponding Documents and a manifest.

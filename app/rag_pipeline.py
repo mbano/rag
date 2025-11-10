@@ -15,6 +15,7 @@ from app.config import RETRIEVER_PARAMS, RERANKER_PARAMS, SPARSE_RETRIEVER_PARAM
 from dotenv import load_dotenv
 import json
 import os
+import time
 
 # local fallback
 load_dotenv()
@@ -79,7 +80,7 @@ class Search(TypedDict):
 class State(TypedDict):
     question: str
     query: Search
-    context: list[Document]
+    contexts: list[Document]
     answer: str
     metadata: dict
 
@@ -95,30 +96,30 @@ def retrieve(state: State):
     query = state["query"]
     retrieved_docs = rerank_retriever.invoke(query["query"])
 
-    return {"context": retrieved_docs}
+    return {"contexts": retrieved_docs}
 
 
 def generate(state: State):
-    context = "".join(doc.page_content + " " for doc in state["context"])
+    context = "".join(doc.page_content + " " for doc in state["contexts"])
     messages = prompt.invoke({"question": state["question"], "context": context})
     response = llm.invoke(messages)
-
-    contexts = []
-    for doc in state["context"]:
-        context = {}
-        context["text"] = doc.page_content
-        context.update(doc.metadata)
-        contexts.append(context)
-
     metadata = {"model_name": response.response_metadata["model_name"]}
+    answer = {"answer": response.content, "metadata": metadata}
 
-    answer = {"answer": response.content, "context": contexts, "metadata": metadata}
     return answer
 
 
-graph_builder = StateGraph(State).add_sequence([analyze_query, retrieve, generate])
-graph_builder.add_edge(START, "analyze_query")
-graph = graph_builder.compile()
+def build_graph(eval_mode: bool = False):
+    if eval_mode:
+        time.sleep(8)  #  prevent rate-limiting from Cohere when evaluating
+    graph_builder = StateGraph(State).add_sequence([analyze_query, retrieve, generate])
+    graph_builder.add_edge(START, "analyze_query")
+    graph = graph_builder.compile()
+
+    return graph
+
+
+graph = build_graph()
 
 
 def answer_question(question: str):

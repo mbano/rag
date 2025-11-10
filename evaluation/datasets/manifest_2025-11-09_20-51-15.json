@@ -1,0 +1,36 @@
+{
+  "dataset_name": "dataset_2025-11-09_20-51-15",
+  "created_at": "2025-11-09 19:54:58.523248+00:00",
+  "generator_script": "populate_dataset.py",
+  "generation_prompt": "input_variables=['context', 'question'] input_types={} partial_variables={} metadata={'lc_hub_owner': 'rlm', 'lc_hub_repo': 'rag-prompt', 'lc_hub_commit_hash': '50442af133e61576e74536c6556cefe1fac147cad032f4377b60c436e6cdcb6e'} messages=[HumanMessagePromptTemplate(prompt=PromptTemplate(input_variables=['context', 'question'], input_types={}, partial_variables={}, template=\"You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.\\nQuestion: {question} \\nContext: {context} \\nAnswer:\"), additional_kwargs={})]",
+  "parameters": {
+    "chunk_size": 1000,
+    "chunk_overlap": 100,
+    "embedding_model": "text-embedding-3-large",
+    "eval_model": "gpt-4o-mini",
+    "vector_store": "faiss",
+    "loader_name": "UnstructuredLoader",
+    "loader_params": {
+      "pdf": {
+        "strategy": "hi_res",
+        "chunking_strategy": "by_title",
+        "infer_table_structure": true,
+        "max_characters": 500,
+        "overlap": 0
+      },
+      "web": null
+    },
+    "retriever_params": {
+      "k": 10
+    },
+    "sparse_retriever_name": "BM25",
+    "sparse_retriever_params": {
+      "k": 8
+    },
+    "reranker_name": "CohereRerank",
+    "reranker_params": {
+      "model": "rerank-v3.5",
+      "top_n": 4
+    }
+  }
+}

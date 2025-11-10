@@ -10,7 +10,7 @@
     {
         "id": "q002",
         "source": "www_ipcc_ch_srccl_chapter_chapter-5_edea9da4",
-        "question": "According to Chapter 5, what range of cropland area increase is projected by FAO by 2050 (under certain assumptions) and what is the 2010 baseline cropland area?",
+        "question": "What range of cropland area increase is projected by FAO by 2050 and what is the 2010 baseline cropland area?",
         "ground_truth": "The projected cropland area increase: 90–325 million ha (between 6% and 21%) above the 2010 baseline of 1,567 Mha.",
         "contexts": [],
         "answer": ""
@@ -40,14 +40,6 @@
         "answer": ""
       },
       {
-        "id": "q006",
-        "source": "www_ipcc_ch_srccl_chapter_chapter-5_edea9da4",
-        "question": "How much is cropland area projected to increase by 2050 relative to 2010, and what was the 2010 baseline area?",
-        "ground_truth": "A projected increase of 90-325 million hectares (6-21% more) above a 2010 baseline of 1,567 million hectares",
-        "contexts": [],
-        "answer": ""
-      },
-      {
         "id": "q007",
         "source": "www_ipcc_ch_srccl_chapter_chapter-5_edea9da4",
         "question": "Why is the food system described as having a dual role with respect to climate change?",
@@ -66,7 +58,7 @@
       {
         "id": "q009",
         "source": "lancet_eat_2025",
-        "question": "What proportion of the world’s population currently struggles to access healthy diets?",
+        "question": "What proportion of the world's population currently struggles to access healthy diets?",
         "ground_truth": "More than half of the global population.",
         "contexts": [],
         "answer": ""
@@ -98,7 +90,7 @@
       {
         "id": "q013",
         "source": "lancet_eat_2025",
-        "question": "What fraction of the global population currently lives within a “safe and just space” considering both planetary and social boundaries?",
+        "question": "What fraction of the global population currently lives within a safe and just space considering both planetary and social boundaries?",
         "ground_truth": "About 1% of the global population.",
         "contexts": [],
         "answer": ""

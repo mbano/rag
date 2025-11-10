@@ -147,6 +147,9 @@ def ensure_corpus_assets(
                     urls = {"urls": urls_to_copy}
                     json.dump(urls, f)
 
+    if not patterns:
+        return faiss_dir, doc_dir
+
     print(f"[artifacts] Downloading missing assets from '{repo_id}' ({revision})...")
 
     cache_dir = Path(

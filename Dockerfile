@@ -19,6 +19,7 @@ RUN python -m nltk.downloader -d ${NLTK_DATA} punkt_tab stopwords
 # Copy core app and config
 COPY /app /app
 COPY /config.yaml /config.yaml
+COPY /prompts /prompts
 
 # Always create empty dirs first
 RUN mkdir -p /data /artifacts && chown -R ${APP_USER}:${APP_USER} /data /artifacts

@@ -1,0 +1,11 @@
+You are an assistant that rewrites user questions into search queries for a retrieval system.
+Given the user's question, generate a single concise search query that will retrieve the most relevant documents.
+
+Guidelines:
+- Do NOT answer the question.
+- Do NOT add explanations or commentary.
+- Make the query self-contained (include important entities, constraints, and context from the question).
+- Keep it to one line.
+
+Question: {question}
+Search query:

@@ -1,13 +1,13 @@
-from langchain_unstructured import UnstructuredLoader
+from app.config import IngestionConfig, load_ingestion_config
 from app.utils.docs import filter_web_docs, clean_web_doc, save_docs
 from app.utils.urls import url_to_resource_name
-from app.config import EMBEDDING_MODEL, VECTOR_STORE, LOADER_NAME
+from app.utils.vector_stores import VS_REGISTRY
+from app.utils.loaders import LOADER_REGISTRY
 import json
 import os
 from pathlib import Path
 from datetime import datetime, timezone
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,19 +16,19 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 ART_DIR = BASE_DIR / "artifacts"
-VS_DIR = ART_DIR / VECTOR_STORE
+cfg = load_ingestion_config()
+VS_DIR = ART_DIR / cfg.vector_store.type
 DOC_DIR = ART_DIR / "documents"
 
 
-def ingest_web(url):
+def ingest_web(url, config: IngestionConfig):
     """
     Create and store a vector store index for the web page at url, along with
     the corresponding Documents and a manifest.
     """
 
-    loader = UnstructuredLoader(
-        web_url=url,
-    )
+    loader_builder = LOADER_REGISTRY[config.web.loader.type]["web"]
+    loader = loader_builder(url, **config.web.loader.params)
 
     docs = []
     for doc in loader.lazy_load():
@@ -44,16 +44,20 @@ def ingest_web(url):
     save_docs(clean_docs, doc_dest_dir)
 
     manifest = {
-        "embedding_model": EMBEDDING_MODEL,
-        "loader_name": LOADER_NAME,
+        "vector_store": config.vector_store.type,
+        "embedding_model": config.vector_store.embedding_model,
+        "loader_name": config.web.loader.type,
+        "loader_params": config.web.loader.params,
         "source_url": url,
         "last_indexed": datetime.now(timezone.utc).isoformat(),
     }
 
-    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
-    vector_store = FAISS.from_documents(clean_docs, embeddings)
-    vector_store.save_local(art_dest_dir)
+    embeddings = OpenAIEmbeddings(model=config.vector_store.embedding_model)
+    vs_builder = VS_REGISTRY[config.vector_store.type]["create"]
+    vs_builder(clean_docs, embeddings, art_dest_dir)
 
     with open(f"{art_dest_dir}/manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
-        print(f"[web_ingestor] Saved FAISS index to {VS_DIR}")
+        print(
+            f"[web_ingestor] Saved {config.vector_store.type} vector store to {VS_DIR}"
+        )

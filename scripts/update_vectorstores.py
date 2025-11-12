@@ -1,10 +1,10 @@
 from pathlib import Path
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
 from dotenv import load_dotenv
 import json
 import os
-from app.config import EMBEDDING_MODEL, VECTOR_STORE, LOADER_NAME, LOADER_PARAMS
+from app.config import load_ingestion_config, IngestionConfig
+from app.utils.vector_stores import VS_REGISTRY
 from datetime import datetime, timezone
 from app.utils.urls import url_to_resource_name
 from ingestion.pdf_ingestor import ingest_pdf
@@ -20,7 +20,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 PDF_DIR = DATA_DIR / "pdf"
 ART_DIR = BASE_DIR / "artifacts"
-VS_DIR = ART_DIR / VECTOR_STORE
+cfg = load_ingestion_config()
+VS_DIR = ART_DIR / cfg.vector_store.type
 DOC_DIR = ART_DIR / "documents"
 
 
@@ -40,24 +41,25 @@ def _check_for_vs(file_name):
     return False
 
 
-def _merge_vector_stores():
-    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+def _merge_vector_stores(config: IngestionConfig):
     vector_stores = []
     file_names = []
 
     for vs_path in Path(VS_DIR).glob("*/"):
-        vector_store = FAISS.load_local(
-            vs_path,
-            embeddings,
-            allow_dangerous_deserialization=True,
-        )
-        vector_stores.append(vector_store)
-
         with open(vs_path / "manifest.json", "r") as f:
             manifest = json.load(f)
-            source = manifest.get("source_file")
-            source = manifest.get("source_url") if not source else source
-            file_names.append(source)
+        source = manifest.get("source_file")
+        source = manifest.get("source_url") if not source else source
+        vector_store_name = manifest.get("vector_store", config.vector_store.type)
+        embedding_model = manifest.get(
+            "embedding_model", config.vector_store.embedding_model
+        )
+        file_names.append(source)
+
+        embeddings = OpenAIEmbeddings(model=embedding_model)
+        vs_builder = VS_REGISTRY[config.vector_store.type]["load"]
+        vector_store = vs_builder(vs_path, embeddings, **config.vector_store.kwargs)
+        vector_stores.append(vector_store)
 
     main_vs = vector_stores[0]
     for vs in vector_stores[1:]:
@@ -65,13 +67,13 @@ def _merge_vector_stores():
     main_vs.save_local(VS_DIR)
 
     manifest = {
-        "embedding_model": EMBEDDING_MODEL,
-        "vector_store": VECTOR_STORE,
-        "loader_name": LOADER_NAME,
+        "embedding_model": embedding_model,
+        "vector_store": vector_store_name,
+        "loader_name": config.pdf.loader.type,
+        "loader_params": config.pdf.loader.params,
         "source_files": file_names,
         "last_indexed": datetime.now(timezone.utc).isoformat(),
     }
-    manifest.update(LOADER_PARAMS)
     with open(Path(VS_DIR) / "manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
 
@@ -87,7 +89,7 @@ def update_vector_stores():
                 pdf_name = file_path.stem
                 has_vs = _check_for_vs(pdf_name)
                 if not has_vs:
-                    ingest_pdf(file_path=file_path)
+                    ingest_pdf(file_path=file_path, config=cfg)
                     added_vs = True
         if dir.stem == "web":
             # get each url and transform to resource name
@@ -97,18 +99,18 @@ def update_vector_stores():
             for url, resource_name in zip(urls, resource_names):
                 has_vs = _check_for_vs(resource_name)
                 if not has_vs:
-                    ingest_web(url=url)
+                    ingest_web(url=url, config=cfg)
                     added_vs = True
         if dir.stem == "sql":
             for file_path in dir.iterdir():
-                db_name = file_path.name
+                db_name = file_path.stem
                 has_vs = _check_for_vs(db_name)
                 if not has_vs:
-                    DB_INGESTORS[db_name]()
+                    DB_INGESTORS[db_name](cfg)
                     added_vs = True
 
     if added_vs:
-        _merge_vector_stores()
+        _merge_vector_stores(config=cfg)
         print("Merged existing vector stores.")
     else:
         print("No new documents to add.")

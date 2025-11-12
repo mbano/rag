@@ -6,11 +6,14 @@ from dataclasses import dataclass, field
 PROJECT_ROOT = Path(__file__).resolve().parents[0]
 DEFAULT_CONFIG_PATH = PROJECT_ROOT.with_name("config.yaml")
 
+#  QA
+
 
 @dataclass
 class VectorStoreConfig:
     type: str
     embedding_model: str
+    kwargs: dict[str, Any]
 
 
 @dataclass
@@ -53,7 +56,7 @@ class NodesConfig:
 
 @dataclass
 class RagConfig:
-    vector_stores: dict[str, VectorStoreConfig]
+    vector_store: VectorStoreConfig
     llms: dict[str, LLMConfig]
     nodes: NodesConfig
 
@@ -67,6 +70,7 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> RagConfig:
         vector_stores[key] = VectorStoreConfig(
             type=cfg["type"],
             embedding_model=cfg["embedding_model"],
+            kwargs=cfg["kwargs"],
         )
 
     llms: dict[str, LLMConfig] = {}
@@ -122,4 +126,80 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> RagConfig:
         vector_stores=vector_stores,
         llms=llms,
         nodes=nodes,
+    )
+
+
+#  Ingestion
+
+
+@dataclass
+class LoaderConfig:
+    type: str
+    params: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class PdfSourceConfig:
+    loader: LoaderConfig
+    metadata: dict | None
+
+
+@dataclass
+class WebSourceConfig:
+    loader: LoaderConfig
+    metadata: dict | None
+
+
+@dataclass
+class SqlSourceConfig:
+    loader: LoaderConfig | None
+    metadata: dict | None
+
+
+@dataclass
+class IngestionConfig:
+    vector_store: VectorStoreConfig
+    pdf: PdfSourceConfig | None
+    web: WebSourceConfig | None
+    sql: SqlSourceConfig | None
+
+
+def load_ingestion_config(path: str | Path = DEFAULT_CONFIG_PATH) -> IngestionConfig:
+    path = Path(path)
+    raw = yaml.safe_load(path.read_text())
+
+    vs_key = raw["ingestion"]["vector_store"]
+    vs_cfg = raw["vector_stores"][vs_key]
+    vector_store = VectorStoreConfig(
+        type=vs_cfg["type"],
+        embedding_model=vs_cfg["embedding_model"],
+        kwargs=vs_cfg["kwargs"],
+    )
+
+    pdf_loader_cfg = raw["ingestion"]["sources"]["pdf"]["loader"]
+    pdf_loader_metadata = raw["ingestion"]["sources"]["pdf"]
+    pdf = PdfSourceConfig(
+        loader=LoaderConfig(**pdf_loader_cfg),
+        metadata=pdf_loader_metadata,
+    )
+
+    web_loader_cfg = raw["ingestion"]["sources"]["web"]["loader"]
+    web_loader_metadata = raw["ingestion"]["sources"]["web"]
+    web = WebSourceConfig(
+        loader=LoaderConfig(**web_loader_cfg),
+        metadata=web_loader_metadata,
+    )
+
+    sql_loader_cfg = raw["ingestion"]["sources"]["sql"]["loader"]
+    sql_loader_metadata = raw["ingestion"]["sources"]["sql"]
+    sql = WebSourceConfig(
+        loader=LoaderConfig(**sql_loader_cfg),
+        metadata=sql_loader_metadata,
+    )
+
+    return IngestionConfig(
+        vector_store=vector_store,
+        pdf=pdf,
+        web=web,
+        sql=sql,
     )

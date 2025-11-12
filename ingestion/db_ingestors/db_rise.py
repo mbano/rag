@@ -1,11 +1,11 @@
 from pathlib import Path
 import pandas as pd
 from sqlalchemy import create_engine
-from app.config import EMBEDDING_MODEL, VECTOR_STORE
+from app.config import IngestionConfig, load_ingestion_config
+from app.utils.vector_stores import VS_REGISTRY
 from app.utils.docs import save_docs
 from datetime import datetime, timezone
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from dotenv import load_dotenv
 import json
@@ -20,12 +20,13 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 ART_DIR = BASE_DIR / "artifacts"
-VS_DIR = ART_DIR / VECTOR_STORE
+cfg = load_ingestion_config()
+VS_DIR = ART_DIR / cfg.vector_store.type
 RISE_DB_PATH = f"sqlite:///{BASE_DIR}/data/sql/{DB_NAME}"
 DOC_DIR = ART_DIR / "documents"
 
 
-def ingest():
+def ingest(config: IngestionConfig):
     """
     Create and store a vector store index for the PDF file_path, along with
     the corresponding Documents and a manifest.
@@ -56,16 +57,19 @@ def ingest():
     save_docs(docs, doc_dest_dir)
 
     manifest = {
-        "embedding_model": EMBEDDING_MODEL,
-        "loader_name": None,
+        "vector_store": config.vector_store.type,
+        "embedding_model": config.vector_store.embedding_model,
+        "loader_name": config.sql.loader.type,
         "source_file": DB_NAME,
         "last_indexed": datetime.now(timezone.utc).isoformat(),
     }
 
-    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
-    vector_store = FAISS.from_documents(docs, embeddings)
-    vector_store.save_local(art_dest_dir)
+    embeddings = OpenAIEmbeddings(model=config.vector_store.embedding_model)
+    vs_builder = VS_REGISTRY[config.vector_store.type]["create"]
+    vs_builder(docs, embeddings, art_dest_dir)
 
     with open(f"{art_dest_dir}/manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
-        print(f"[{DB_NAME}_ingestor] Saved FAISS index to {VS_DIR}")
+        print(
+            f"[{DB_NAME}_ingestor] Saved {config.vector_store.type} vector store to {VS_DIR}"
+        )

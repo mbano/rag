@@ -1,6 +1,7 @@
 from langsmith import Client
 from langsmith.utils import LangSmithError
 from app.rag_pipeline import build_graph
+from app.config import load_config
 from pathlib import Path
 from dotenv import load_dotenv
 from datetime import datetime, timezone
@@ -63,10 +64,12 @@ evaluation_config = RunEvalConfig(
     prediction_key="response",
 )
 
+graph_cfg = load_config()
+
 result = run_on_dataset(
     client,
     dataset_name,
-    build_graph(eval_mode=True),
+    build_graph(graph_cfg, eval_mode=True),
     evaluation=evaluation_config,
     project_metadata=ds_manifest,
     concurrency_level=1,  #  prevent rate-limiting from Cohere

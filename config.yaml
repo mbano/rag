@@ -3,6 +3,8 @@ vector_stores:
   faiss:
     type: "faiss"
     embedding_model: "text-embedding-3-large"
+    kwargs:
+      allow_dangerous_deserialization: true
 
 llms:
   gpt_4o_mini:
@@ -38,17 +40,26 @@ nodes:
     prompt: "answer_generation_v1.txt"
 
 ingestion:
-  pdf:
-    loader:
-      type: "unstructured"
-      params:
-        strategy: "hi_res"
-        chunking_strategy: "by_title"
-        infer_table_structure: true
-        max_characters: 500
-        overlap: 0
-  web:
-    loader:
-      type: "unstructured"
-      params: {}
   vector_store: "faiss"
+  sources:
+    pdf:
+      loader:
+        type: "unstructured"
+        params:
+          strategy: "hi_res"
+          chunking_strategy: "by_title"
+          infer_table_structure: true
+          max_characters: 500
+          overlap: 0
+    web:
+      loader:
+        type: "unstructured"
+        params:
+          strategy: "hi_res"
+          infer_table_structure: true
+          max_characters: 500
+          overlap: 0
+    sql:
+      loader:
+        type: "none"
+        params: {}

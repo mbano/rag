@@ -1,4 +1,4 @@
-from app.config import IngestionConfig, load_ingestion_config
+from app.config import IngestionConfig
 from app.utils.docs import filter_web_docs, clean_web_doc, save_docs
 from app.utils.urls import url_to_resource_name
 from app.utils.vector_stores import VS_REGISTRY
@@ -16,9 +16,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 ART_DIR = BASE_DIR / "artifacts"
-cfg = load_ingestion_config()
-VS_DIR = ART_DIR / cfg.vector_store.type
-DOC_DIR = ART_DIR / "documents"
 
 
 def ingest_web(url, config: IngestionConfig):
@@ -26,6 +23,9 @@ def ingest_web(url, config: IngestionConfig):
     Create and store a vector store index for the web page at url, along with
     the corresponding Documents and a manifest.
     """
+
+    VS_DIR = ART_DIR / config.vector_store.type
+    DOC_DIR = ART_DIR / "documents"
 
     loader_builder = LOADER_REGISTRY[config.web.loader.type]["web"]
     loader = loader_builder(url, **config.web.loader.params)

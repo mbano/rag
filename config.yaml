@@ -63,3 +63,6 @@ ingestion:
       loader:
         type: "none"
         params: {}
+
+evaluation:
+  llm: "gpt_4o_mini"

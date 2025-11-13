@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 from sqlalchemy import create_engine
-from app.config import IngestionConfig, load_ingestion_config
+from app.config import IngestionConfig
 from app.utils.vector_stores import VS_REGISTRY
 from app.utils.docs import save_docs
 from datetime import datetime, timezone
@@ -20,10 +20,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 ART_DIR = BASE_DIR / "artifacts"
-cfg = load_ingestion_config()
-VS_DIR = ART_DIR / cfg.vector_store.type
 RISE_DB_PATH = f"sqlite:///{BASE_DIR}/data/sql/{DB_NAME}"
-DOC_DIR = ART_DIR / "documents"
 
 
 def ingest(config: IngestionConfig):
@@ -31,6 +28,9 @@ def ingest(config: IngestionConfig):
     Create and store a vector store index for the PDF file_path, along with
     the corresponding Documents and a manifest.
     """
+
+    VS_DIR = ART_DIR / config.vector_store.type
+    DOC_DIR = ART_DIR / "documents"
 
     engine = create_engine(RISE_DB_PATH)
     query = """

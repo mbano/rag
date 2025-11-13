@@ -11,7 +11,7 @@ from app.utils.artifacts import ensure_corpus_assets
 from app.utils.docs import load_docs
 from app.utils.text import clean_tokens
 from app.utils.prompts import get_chat_prompt_template
-from app.config import load_config, RagConfig
+from app.config import RagConfig
 from dotenv import load_dotenv
 import json
 import os
@@ -196,11 +196,3 @@ def build_graph(config: RagConfig, eval_mode: bool = False):
     graph = graph_builder.compile()
 
     return graph
-
-
-def answer_question(question: str):
-    cfg = load_config()
-    graph = build_graph(cfg)
-    result = graph.invoke({"question": question})
-
-    return result

@@ -1,9 +1,3 @@
-# https://docs.ragas.io/en/latest/howtos/integrations/langchain/#evaluate
-# https://docs.ragas.io/en/latest/concepts/metrics/available_metrics/
-# https://blog.langchain.com/evaluating-rag-pipelines-with-ragas-langsmith/
-# https://langchain-tutorials.com/lessons/rag-applications/lesson-15
-
-
 from ragas import EvaluationDataset
 from ragas import evaluate
 from ragas.metrics import (
@@ -19,7 +13,7 @@ from ragas.metrics import (
 )
 from ragas.llms import LangchainLLMWrapper
 from langchain.chat_models import init_chat_model
-from app.config import EVAL_MODEL
+from app.config import load_eval_config
 from pathlib import Path
 from datetime import datetime, timezone
 import json
@@ -30,8 +24,8 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 EVAL_DIR = Path(__file__).resolve().parent
 
-
-model = init_chat_model(EVAL_MODEL)
+cfg = load_eval_config()
+model = init_chat_model(cfg.llm.model_name)
 evaluator_llm = LangchainLLMWrapper(model, bypass_n=True)
 metrics = [
     AnswerCorrectness(),

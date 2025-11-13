@@ -56,7 +56,7 @@ class NodesConfig:
 
 @dataclass
 class RagConfig:
-    vector_store: VectorStoreConfig
+    vector_stores: dict[str, VectorStoreConfig]
     llms: dict[str, LLMConfig]
     nodes: NodesConfig
 
@@ -203,3 +203,25 @@ def load_ingestion_config(path: str | Path = DEFAULT_CONFIG_PATH) -> IngestionCo
         web=web,
         sql=sql,
     )
+
+
+#  evaluation
+#  TODO: add eval metrics
+
+
+@dataclass
+class EvalConfig:
+    llm: LLMConfig
+
+
+def load_eval_config(path: str | Path = DEFAULT_CONFIG_PATH) -> IngestionConfig:
+    path = Path(path)
+    raw = yaml.safe_load(path.read_text())
+
+    llm_key = raw["evaluation"]["llm"]
+    llm = LLMConfig(
+        model_name=raw["llms"][llm_key]["model_name"],
+        model_provider=raw["llms"][llm_key]["model_provider"],
+    )
+
+    return EvalConfig(llm=llm)

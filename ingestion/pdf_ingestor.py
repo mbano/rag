@@ -1,4 +1,4 @@
-from app.config import load_ingestion_config, IngestionConfig
+from app.config import IngestionConfig
 from app.utils.docs import clean_pdf_doc, save_docs
 from app.utils.vector_stores import VS_REGISTRY
 from app.utils.loaders import LOADER_REGISTRY
@@ -15,10 +15,7 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-cfg = load_ingestion_config()
 ART_DIR = BASE_DIR / "artifacts"
-VS_DIR = ART_DIR / cfg.vector_store.type
-DOC_DIR = ART_DIR / "documents"
 
 
 def ingest_pdf(file_path: Path, config: IngestionConfig):
@@ -26,6 +23,9 @@ def ingest_pdf(file_path: Path, config: IngestionConfig):
     Create and store a vector store index for the PDF file_path, along with
     the corresponding Documents and a manifest.
     """
+
+    VS_DIR = ART_DIR / config.vector_store.type
+    DOC_DIR = ART_DIR / "documents"
 
     loader_builder = LOADER_REGISTRY[config.pdf.loader.type]["pdf"]
     loader = loader_builder(file_path, **config.pdf.loader.params)

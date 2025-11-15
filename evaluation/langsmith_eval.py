@@ -1,7 +1,7 @@
 from langsmith import Client
 from langsmith.utils import LangSmithError
 from app.rag_pipeline import build_graph
-from app.config import load_config
+from app.config import settings
 from pathlib import Path
 from dotenv import load_dotenv
 from datetime import datetime, timezone
@@ -64,7 +64,7 @@ evaluation_config = RunEvalConfig(
     prediction_key="response",
 )
 
-graph_cfg = load_config()
+graph_cfg = settings.rag
 
 result = run_on_dataset(
     client,

@@ -1,8 +1,12 @@
+from functools import lru_cache
 import yaml
+import os
 from pathlib import Path
 from typing import Any
 from dataclasses import dataclass, field
+from dotenv import load_dotenv
 
+load_dotenv()
 PROJECT_ROOT = Path(__file__).resolve().parents[0]
 DEFAULT_CONFIG_PATH = PROJECT_ROOT.with_name("config.yaml")
 
@@ -61,7 +65,7 @@ class RagConfig:
     nodes: NodesConfig
 
 
-def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> RagConfig:
+def _load_rag_config(path) -> RagConfig:
     path = Path(path)
     raw = yaml.safe_load(path.read_text())
 
@@ -164,7 +168,7 @@ class IngestionConfig:
     sql: SqlSourceConfig | None
 
 
-def load_ingestion_config(path: str | Path = DEFAULT_CONFIG_PATH) -> IngestionConfig:
+def _load_ingestion_config(path) -> IngestionConfig:
     path = Path(path)
     raw = yaml.safe_load(path.read_text())
 
@@ -214,7 +218,7 @@ class EvalConfig:
     llm: LLMConfig
 
 
-def load_eval_config(path: str | Path = DEFAULT_CONFIG_PATH) -> IngestionConfig:
+def _load_eval_config(path) -> IngestionConfig:
     path = Path(path)
     raw = yaml.safe_load(path.read_text())
 
@@ -225,3 +229,47 @@ def load_eval_config(path: str | Path = DEFAULT_CONFIG_PATH) -> IngestionConfig:
     )
 
     return EvalConfig(llm=llm)
+
+
+#  settings
+
+
+@dataclass
+class SecretsConfig:
+    openai_api_key: str = field(default_factory=lambda: os.environ["OPENAI_API_KEY"])
+    langsmith_api_key: str = field(
+        default_factory=lambda: os.environ["LANGSMITH_API_KEY"]
+    )
+    cohere_api_key: str = field(default_factory=lambda: os.environ["COHERE_API_KEY"])
+    hf_token: str = field(default_factory=lambda: os.environ["HF_TOKEN"])
+
+
+@dataclass
+class Settings:
+    rag: RagConfig
+    ingestion: IngestionConfig
+    evaluation: EvalConfig
+    secrets: SecretsConfig
+
+
+def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Settings:
+    rag = _load_rag_config(path)
+    ingestion = _load_ingestion_config(path)
+    evaluation = _load_eval_config(path)
+    secrets = SecretsConfig()
+
+    return Settings(
+        rag=rag,
+        ingestion=ingestion,
+        evaluation=evaluation,
+        secrets=secrets,
+    )
+
+
+@lru_cache()
+def get_settings():
+    CONFIG_PATH = os.environ.get("CONFIG_PATH", DEFAULT_CONFIG_PATH)
+    return load_config(CONFIG_PATH)
+
+
+settings = get_settings()

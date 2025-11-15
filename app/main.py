@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pydantic import BaseModel
 from app.rag_pipeline import build_graph
-from app.config import load_config, RagConfig
+from app.config import settings, RagConfig
 
 
 class QueryRequest(BaseModel):
@@ -11,7 +11,7 @@ class QueryRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    cfg: RagConfig = load_config()
+    cfg: RagConfig = settings.rag
     graph = build_graph(cfg)
     app.state.graph = graph
     yield

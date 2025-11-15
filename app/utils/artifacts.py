@@ -1,9 +1,9 @@
 import shutil
+import json
+import os
 from pathlib import Path
 from huggingface_hub import snapshot_download, HfFileSystem
 from dotenv import load_dotenv
-import json
-import os
 
 load_dotenv()
 
@@ -176,3 +176,4 @@ def ensure_corpus_assets(
 
 
 #  TODO: add download/sync with other file types
+#  TODO: add download/sync with vector stores

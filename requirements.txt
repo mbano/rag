@@ -20,5 +20,8 @@ nltk
 # downloading data and artifacts
 huggingface-hub[hf_transfer]
 
+# aws integration
+boto3
+
 # monitoring
 langsmith

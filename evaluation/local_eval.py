@@ -1,3 +1,4 @@
+from app.config import settings
 from ragas import EvaluationDataset
 from ragas import evaluate
 from ragas.metrics import (
@@ -13,18 +14,16 @@ from ragas.metrics import (
 )
 from ragas.llms import LangchainLLMWrapper
 from langchain.chat_models import init_chat_model
-from app.config import load_eval_config
 from pathlib import Path
 from datetime import datetime, timezone
 import json
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = settings.secrets.openai_api_key
 EVAL_DIR = Path(__file__).resolve().parent
 
-cfg = load_eval_config()
+cfg = settings.evaluation
 model = init_chat_model(cfg.llm.model_name)
 evaluator_llm = LangchainLLMWrapper(model, bypass_n=True)
 metrics = [

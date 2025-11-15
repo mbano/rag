@@ -196,3 +196,6 @@ def build_graph(config: RagConfig, eval_mode: bool = False):
     graph = graph_builder.compile()
 
     return graph
+
+
+#  TODO: add download/sync with vector stores

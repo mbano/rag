@@ -13,63 +13,79 @@ import os
 
 
 load_dotenv()
-
-DB_NAME = "rise.db"  #  must match the name of the .db file
-
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+DB_NAME = "rise.db"
 BASE_DIR = Path(__file__).resolve().parents[2]
 ART_DIR = BASE_DIR / "artifacts"
 RISE_DB_PATH = f"sqlite:///{BASE_DIR}/data/sql/{DB_NAME}"
 
 
-def ingest(config: IngestionConfig):
-    """
-    Create and store a vector store index for the PDF file_path, along with
-    the corresponding Documents and a manifest.
-    """
+class RiseDBIngestor:
 
-    VS_DIR = ART_DIR / config.vector_store.type
-    DOC_DIR = ART_DIR / "documents"
+    def __init__(self, config: IngestionConfig):
+        self.config = config
 
-    engine = create_engine(RISE_DB_PATH)
-    query = """
-    SELECT FoodCat3Name, GHGTotalValue, RegionName, ProductionTypeEng
-    FROM rise_co2
-    """
-    df = pd.read_sql_query(query, engine)
-    docs = []
+    def ingest(self):
+        """
+        Create and store a vector store index for the PDF file_path, along with
+        the corresponding Documents and a manifest.
+        """
 
-    for i, row in df.iterrows():
-        text = (
-            f"Foods or ingredients of type {row['FoodCat3Name']}, "
-            f"when sourced from {row['RegionName']} "
-            f"and produced with {row['ProductionTypeEng']} methods, "
-            f"produce approximately {row['GHGTotalValue'].replace(',', '.')} kg of CO2 per kg."
-        )
-        metadata = {"type": "SQL", "filename": DB_NAME, "row": i}
-        doc = Document(page_content=text, metadata=metadata)
-        docs.append(doc)
+        VS_DIR = ART_DIR / self.config.vector_store.type
+        DOC_DIR = ART_DIR / "documents"
 
-    art_dest_dir = f"{VS_DIR}/{DB_NAME.split('.')[0]}"
-    doc_dest_dir = f"{DOC_DIR}/{DB_NAME.split('.')[0]}"
+        engine = create_engine(RISE_DB_PATH)
+        query = """
+        SELECT FoodCat3Name, GHGTotalValue, RegionName, ProductionTypeEng
+        FROM rise_co2
+        """
+        df = pd.read_sql_query(query, engine)
+        docs = []
 
-    save_docs(docs, doc_dest_dir)
+        for i, row in df.iterrows():
+            text = (
+                f"Foods or ingredients of type {row['FoodCat3Name']}, "
+                f"when sourced from {row['RegionName']} "
+                f"and produced with {row['ProductionTypeEng']} methods, "
+                f"produce approximately {row['GHGTotalValue'].replace(',', '.')} kg of CO2 per kg."
+            )
+            metadata = {
+                "doc_id": f"db:{DB_NAME}",
+                "chunk_id": f"db:{DB_NAME}::chunk-{i}",
+                "chunk_index": i,
+                "source": DB_NAME,
+                "filetype": "sql",
+                "filename": DB_NAME,
+                "language": "en",
+                "ingested_at": datetime.now(timezone.utc).isoformat(),
+                "tenant_id": "default",
+                "pipeline_version": self.config.pipeline_version,
+                "tags": [],
+                "doc_title": "RISE CO2 Emissions",
+            }
+            doc = Document(page_content=text, metadata=metadata)
+            docs.append(doc)
 
-    manifest = {
-        "vector_store": config.vector_store.type,
-        "embedding_model": config.vector_store.embedding_model,
-        "loader_name": config.sql.loader.type,
-        "source_file": DB_NAME,
-        "last_indexed": datetime.now(timezone.utc).isoformat(),
-    }
+        art_dest_dir = f"{VS_DIR}/{DB_NAME.split('.')[0]}"
+        doc_dest_dir = f"{DOC_DIR}/{DB_NAME.split('.')[0]}"
 
-    embeddings = OpenAIEmbeddings(model=config.vector_store.embedding_model)
-    vs_builder = VS_REGISTRY[config.vector_store.type]["create"]
-    vs_builder(docs, embeddings, art_dest_dir)
+        save_docs(docs, doc_dest_dir)
 
-    with open(f"{art_dest_dir}/manifest.json", "w") as f:
-        json.dump(manifest, f, indent=2)
-        print(
-            f"[{DB_NAME}_ingestor] Saved {config.vector_store.type} vector store to {VS_DIR}"
-        )
+        manifest = {
+            "vector_store": self.config.vector_store.type,
+            "embedding_model": self.config.vector_store.embedding_model,
+            "loader_name": self.config.sql.loader.type,
+            "source_file": DB_NAME,
+            "last_indexed": datetime.now(timezone.utc).isoformat(),
+        }
+
+        embeddings = OpenAIEmbeddings(model=self.config.vector_store.embedding_model)
+        vs_builder = VS_REGISTRY[self.config.vector_store.type]["create"]
+        vs_builder(docs, embeddings, art_dest_dir)
+
+        with open(f"{art_dest_dir}/manifest.json", "w") as f:
+            json.dump(manifest, f, indent=2)
+            print(
+                f"[{DB_NAME}_ingestor] Saved {self.config.vector_store.type} vector store to {VS_DIR}"
+            )

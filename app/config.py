@@ -99,10 +99,17 @@ def _load_rag_config(path) -> RagConfig:
     sparse_raw = r_raw["sparse"]
     ensemble_raw = r_raw.get("ensemble") or {}
     reranker_raw = r_raw["reranker"]
+    r_vs_key = dense_raw["vector_store"]
+    vs_retrieval_kwargs = raw["vector_stores"][r_vs_key]["retrieval_kwargs"]
+
+    r_merged_params = {
+        **vs_retrieval_kwargs,
+        **(r_raw.get("params") or {}),
+    }
 
     retrieve = RetrieveConfig(
         dense_vector_store_key=dense_raw["vector_store"],
-        dense_params=dense_raw.get("params") or {},
+        dense_params=r_merged_params,
         sparse_type=sparse_raw["type"],
         sparse_params=sparse_raw.get("params") or {},
         ensemble_weights=ensemble_raw.get("weights", [0.5, 0.5]),
@@ -162,6 +169,7 @@ class SqlSourceConfig:
 
 @dataclass
 class IngestionConfig:
+    pipeline_version: str
     vector_store: VectorStoreConfig
     pdf: PdfSourceConfig | None
     web: WebSourceConfig | None
@@ -171,6 +179,8 @@ class IngestionConfig:
 def _load_ingestion_config(path) -> IngestionConfig:
     path = Path(path)
     raw = yaml.safe_load(path.read_text())
+
+    pipeline_version = raw["ingestion"]["pipeline_version"]
 
     vs_key = raw["ingestion"]["vector_store"]
     vs_cfg = raw["vector_stores"][vs_key]
@@ -202,6 +212,7 @@ def _load_ingestion_config(path) -> IngestionConfig:
     )
 
     return IngestionConfig(
+        pipeline_version=pipeline_version,
         vector_store=vector_store,
         pdf=pdf,
         web=web,

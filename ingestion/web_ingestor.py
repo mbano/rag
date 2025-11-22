@@ -1,5 +1,5 @@
 from app.config import IngestionConfig
-from app.utils.docs import filter_web_docs, clean_web_doc, save_docs
+from app.utils.docs import process_web_docs, save_docs
 from app.utils.urls import url_to_resource_name
 from app.utils.vector_stores import VS_REGISTRY
 from app.utils.loaders import LOADER_REGISTRY
@@ -34,14 +34,13 @@ def ingest_web(url, config: IngestionConfig):
     for doc in loader.lazy_load():
         docs.append(doc)
 
-    filtered_docs = filter_web_docs(docs)
-    clean_docs = [clean_web_doc(doc) for doc in filtered_docs]
+    processed_docs = process_web_docs(docs, config)
 
     resource_name = url_to_resource_name(url)
     art_dest_dir = f"{VS_DIR}/{resource_name}"
     doc_dest_dir = f"{DOC_DIR}/{resource_name}"
 
-    save_docs(clean_docs, doc_dest_dir)
+    save_docs(processed_docs, doc_dest_dir)
 
     manifest = {
         "vector_store": config.vector_store.type,
@@ -54,7 +53,7 @@ def ingest_web(url, config: IngestionConfig):
 
     embeddings = OpenAIEmbeddings(model=config.vector_store.embedding_model)
     vs_builder = VS_REGISTRY[config.vector_store.type]["create"]
-    vs_builder(clean_docs, embeddings, art_dest_dir)
+    vs_builder(processed_docs, embeddings, art_dest_dir)
 
     with open(f"{art_dest_dir}/manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)

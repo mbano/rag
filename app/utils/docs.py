@@ -1,8 +1,12 @@
 from langchain_core.documents import Document
+from app.config import IngestionConfig
 from ftfy import fix_text
 from pathlib import Path
+from datetime import datetime, timezone
+from url_normalize import url_normalize
 import json
 import os
+
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DOC_DIR = BASE_DIR / "artifacts" / "documents"
@@ -11,36 +15,44 @@ DOC_DIR = BASE_DIR / "artifacts" / "documents"
 #  TODO: add min chunk length filtering
 
 
-def clean_pdf_doc(doc: Document):
+def process_pdf_docs(docs: list[Document], config: IngestionConfig):
     """
-    Remove metadata fields useless for RAG
-    remove special characters from text
-
-    Assumes loader is UnstructuredLoader #  TODO: verify if categories depend on loader
+    Process a list of pdf documents:
+    Clean text, remove unneeded metadata, add extra metadata for RAG
     """
-    # filter by categories
-    ## TableChunk -> keep text_as_html, is_continuation -> make into df
-    ### if is_continuation missing
-    #### get next doc with TableChunk
-    ##### if has is_continuation
-    ###### make into df, append to above
-    #### save as csv -> embed -> profit
-    clean_doc = Document(page_content="")
-    if doc.metadata["category"] == "CompositeElement":
-        keep_fields = [
-            "filename",
-            "page_number",
-        ]
-        clean_doc.metadata = {k: v for k, v in doc.metadata.items() if k in keep_fields}
-        clean_doc.page_content = _clean_text(doc.page_content)
+    processed_docs = []
+    keep_fields = [
+        "source",
+        "filetype",
+        "languages",
+        "last_modified",
+        "filename",
+        "page_number",
+    ]
 
-    # if doc.metadata["category"] == "TableChunk":
-    #     keep_fields = ["filename", "page_number", "text_as_html"]
-    #     clean_doc.metadata = {k: v for k, v in doc.metadata.items() if k in keep_fields}
-    #     clean_doc.page_content = None
-    #     # pass to table -> csv function
+    for chunk_index, doc in enumerate(docs):
+        #  TODO:
+        # filter by categories
+        ## TableChunk -> keep text_as_html, is_continuation -> make into df
+        ### if is_continuation missing
+        #### get next doc with TableChunk
+        ##### if has is_continuation
+        ###### make into df, append to above
+        #### save as csv -> embed -> profit
+        if doc.metadata["category"] == "CompositeElement":
+            doc.metadata = {k: v for k, v in doc.metadata.items() if k in keep_fields}
+            doc.metadata["doc_title"] = doc.metadata["filename"]
+            doc.metadata["doc_id"] = doc.metadata["filename"]
+            doc.metadata["chunk_id"] = f"{doc.metadata['doc_id']}::{chunk_index}"
+            doc.metadata["chunk_index"] = chunk_index
+            doc.metadata["tags"] = []
+            doc.metadata["ingested_at"] = datetime.now(timezone.utc).isoformat()
+            doc.metadata["tenant_id"] = "default"
+            doc.metadata["pipeline_version"] = config.pipeline_version
+            doc.page_content = _clean_text(doc.page_content)
+            processed_docs.append(doc)
 
-    return clean_doc
+    return processed_docs
 
 
 def _clean_text(text: str):
@@ -51,29 +63,40 @@ def _clean_text(text: str):
     return clean_text
 
 
-def filter_web_docs(docs: list[Document]):
+def process_web_docs(docs: list[Document], config: IngestionConfig):
     """
-    Keep only document with selected categories
+    Process a list of web documents:
+    Clean text, remove unneeded metadata, add extra metadata for RAG
     """
-    #  TODO: add image category -> get text description -> enrich vs
-    ##  stretch: make image available to user
-    keep_categories = ["NarrativeText"]
-
+    #  TODO:  keep category "image_url", use for enrichment
+    keep_categories = ["NarrativeText", "Title"]
     filtered_docs = [doc for doc in docs if doc.metadata["category"] in keep_categories]
 
-    return filtered_docs
+    processed_docs = []
+    keep_fields = [
+        "filetype",
+        "languages",
+        "url",
+    ]
 
+    title = None
+    for chunk_index, doc in enumerate(filtered_docs):
+        if doc.metadata.get("category") == "Title":
+            title = doc.page_content
+        doc.metadata["doc_title"] = title
+        doc.metadata = {k: v for k, v in doc.metadata.items() if k in keep_fields}
+        doc.metadata["doc_id"] = url_normalize(doc.metadata["url"])
+        doc.metadata["source"] = doc.metadata["doc_id"]
+        doc.metadata["chunk_id"] = f"{doc.metadata['doc_id']}::{chunk_index}"
+        doc.metadata["chunk_index"] = chunk_index
+        doc.metadata["tags"] = []
+        doc.metadata["ingested_at"] = datetime.now(timezone.utc).isoformat()
+        doc.metadata["tenant_id"] = "default"
+        doc.metadata["pipeline_version"] = config.pipeline_version
+        doc.page_content = _clean_text(doc.page_content)
+        processed_docs.append(doc)
 
-def clean_web_doc(doc: Document):
-    """
-    Remove metadata fields unneeded for RAG
-    """
-    clean_doc = Document(page_content="")
-    keep_fields = ["url"]
-    clean_doc.metadata = {k: v for k, v in doc.metadata.items() if k in keep_fields}
-    clean_doc.page_content = _clean_text(doc.page_content)
-
-    return clean_doc
+    return processed_docs
 
 
 def load_docs(doc_dir: Path = DOC_DIR, filename: str | None = None):

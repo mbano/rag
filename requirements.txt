@@ -7,7 +7,6 @@ langchain-text-splitters
 langgraph
 langchain-cohere
 
-
 # supporting libs
 uvicorn[standard]
 fastapi
@@ -16,12 +15,15 @@ python-dotenv
 ftfy
 rank-bm25
 nltk
+opensearch-py
+url-normalize
 
 # downloading data and artifacts
 huggingface-hub[hf_transfer]
 
 # aws integration
 boto3
+requests-aws4auth
 
 # monitoring
 langsmith

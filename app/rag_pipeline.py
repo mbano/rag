@@ -36,6 +36,7 @@ faiss_dir, doc_dir = ensure_corpus_assets(
 )
 
 
+#  TODO: generalize to other vector stores
 def _build_vector_store_from_manifest() -> FAISS:
     """
     Load FAISS index from disk using the manifest.json to get the embedding model.
@@ -67,6 +68,7 @@ def _build_retriever(
 
     retr_cfg = config.nodes.retrieve
     vector_store = _build_vector_store_from_manifest()
+    #  TODO: build dict of search_kwargs manually
     dense_retriever = vector_store.as_retriever(search_kwargs=retr_cfg.dense_params)
 
     if retr_cfg.sparse_type.lower() != "bm25":

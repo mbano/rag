@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from app.utils.urls import url_to_resource_name
 from ingestion.pdf_ingestor import ingest_pdf
 from ingestion.web_ingestor import ingest_web
-from ingestion.db_ingestors import DB_INGESTORS
+from app.utils.db_ingestors import get_db_ingestor
 
 # local fallback
 load_dotenv()
@@ -109,7 +109,8 @@ def update_vector_stores(config: IngestionConfig):
                 db_name = file_path.stem
                 has_vs = _check_for_vs(db_name, config=config)
                 if not has_vs:
-                    DB_INGESTORS[db_name](config)
+                    db_ingestor = get_db_ingestor(db_name, config)
+                    db_ingestor.ingest()
                     added_vs = True
 
     if added_vs:

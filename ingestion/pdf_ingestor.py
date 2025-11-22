@@ -1,5 +1,5 @@
 from app.config import IngestionConfig
-from app.utils.docs import clean_pdf_doc, save_docs
+from app.utils.docs import process_pdf_docs, save_docs
 from app.utils.vector_stores import VS_REGISTRY
 from app.utils.loaders import LOADER_REGISTRY
 import json
@@ -34,11 +34,11 @@ def ingest_pdf(file_path: Path, config: IngestionConfig):
     for doc in loader.lazy_load():
         docs.append(doc)
 
-    clean_docs = [clean_pdf_doc(doc) for doc in docs]
+    processed_docs = process_pdf_docs(docs, config)
     art_dest_dir = f"{VS_DIR}/{file_path.stem}"
     doc_dest_dir = f"{DOC_DIR}/{file_path.stem}"
 
-    save_docs(clean_docs, doc_dest_dir)
+    save_docs(processed_docs, doc_dest_dir)
 
     manifest = {
         "vector_store": config.vector_store.type,
@@ -51,7 +51,7 @@ def ingest_pdf(file_path: Path, config: IngestionConfig):
 
     embeddings = OpenAIEmbeddings(model=config.vector_store.embedding_model)
     vs_builder = VS_REGISTRY[config.vector_store.type]["create"]
-    vs_builder(clean_docs, embeddings, art_dest_dir)
+    vs_builder(processed_docs, embeddings, art_dest_dir)
 
     with open(f"{art_dest_dir}/manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)

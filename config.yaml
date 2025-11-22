@@ -3,8 +3,25 @@ vector_stores:
   faiss:
     type: "faiss"
     embedding_model: "text-embedding-3-large"
+    embedding_dimension: 3072
     kwargs:
       allow_dangerous_deserialization: true
+    retrieval_kwargs:
+      k: 50
+  opensearch:
+    type: "opensearch"
+    embedding_model: "text-embedding-3-large"
+    embedding_dimension: 3072
+    kwargs:
+      index_name: "rag-index"
+      vector_field: "vector_field"
+      text_field: "text_field"
+      engine: "faiss"
+      space_type: "l2"
+      m: 48
+      ef_construction: 256
+    retrieval_kwargs:
+      ef_search: 256
 
 llms:
   gpt_4o_mini:
@@ -40,6 +57,7 @@ nodes:
     prompt: "answer_generation_v1.txt"
 
 ingestion:
+  pipeline_version: "1.0.0"
   vector_store: "faiss"
   sources:
     pdf:

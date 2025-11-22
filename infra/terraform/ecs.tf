@@ -73,6 +73,10 @@ resource "aws_ecs_task_definition" "app" {
                 "value": "main"
                 },
                 {
+                    "name": "AWS_REGION",
+                    "value": var.aws_region
+                },
+                {
                     "name": "OPENSEARCH_COLLECTION_ENDPOINT",
                     "value": aws_opensearchserverless_collection.rag_app.collection_endpoint
                 },
@@ -82,7 +86,6 @@ resource "aws_ecs_task_definition" "app" {
                 },
                 {
                     "name": "OPENSEARCH_DASHBOARD_ENDPOINT",
-                    "value": "https://qy9q7mumiymu2rx0k3ja.eu-north-1.aoss.amazonaws.com/_dashboards"
                     "value": aws_opensearchserverless_collection.rag_app.dashboard_endpoint
                 }
             ],

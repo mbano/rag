@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime, timezone
-from langchain_openai import OpenAIEmbeddings
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -51,9 +50,8 @@ def ingest_web(url, config: IngestionConfig):
         "last_indexed": datetime.now(timezone.utc).isoformat(),
     }
 
-    embeddings = OpenAIEmbeddings(model=config.vector_store.embedding_model)
     vs_builder = VS_REGISTRY[config.vector_store.type]["create"]
-    vs_builder(processed_docs, embeddings, art_dest_dir)
+    vs_builder(processed_docs, config.vector_store, save_dir=art_dest_dir)
 
     with open(f"{art_dest_dir}/manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)

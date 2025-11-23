@@ -14,8 +14,6 @@ vector_stores:
     embedding_dimension: 3072
     kwargs:
       index_name: "rag-index"
-      vector_field: "vector_field"
-      text_field: "text_field"
       engine: "faiss"
       space_type: "l2"
       m: 48
@@ -36,7 +34,7 @@ nodes:
     prompt: "query_analysis_v1.txt"
   retrieve:
     dense:
-      vector_store: "faiss"
+      vector_store: "opensearch"
       params:
         k: 10
     sparse:

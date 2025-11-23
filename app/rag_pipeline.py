@@ -2,18 +2,15 @@ from langchain.chat_models import init_chat_model
 from langchain_cohere import CohereRerank
 from langchain.retrievers import ContextualCompressionRetriever, EnsembleRetriever
 from langchain_community.retrievers import BM25Retriever
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
+from app.utils.vector_stores import VS_REGISTRY
 from langchain_core.documents import Document
 from typing_extensions import TypedDict, Annotated
 from langgraph.graph import StateGraph, START
-from app.utils.artifacts import ensure_corpus_assets
 from app.utils.docs import load_docs
 from app.utils.text import clean_tokens
 from app.utils.prompts import get_chat_prompt_template
 from app.config import RagConfig
 from dotenv import load_dotenv
-import json
 import os
 import time
 
@@ -29,46 +26,33 @@ LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT")
 HF_DATASET_REPO = os.getenv("HF_DATASET_REPO")
 HF_REVISION = os.getenv("HF_DATASET_REVISION", "main")
 
-faiss_dir, doc_dir = ensure_corpus_assets(
-    repo_id=HF_DATASET_REPO,
-    revision=HF_REVISION,
-    want_sources=True,
-)
-
-
-#  TODO: generalize to other vector stores
-def _build_vector_store_from_manifest() -> FAISS:
-    """
-    Load FAISS index from disk using the manifest.json to get the embedding model.
-    This keeps the embedding model in sync with the index, independent of config.
-    """
-
-    with open(faiss_dir / "manifest.json", "r") as f:
-        manifest = json.load(f)
-
-    embedding_model = manifest["embedding_model"]
-    embeddings = OpenAIEmbeddings(model=embedding_model)
-
-    vector_store = FAISS.load_local(
-        str(faiss_dir),
-        embeddings,
-        allow_dangerous_deserialization=True,
-    )
-
-    return vector_store
+# VS_DIR, doc_dir = ensure_corpus_assets(
+#     repo_id=HF_DATASET_REPO,
+#     revision=HF_REVISION,
+#     want_sources=True,
+# )
 
 
 def _build_retriever(
     config: RagConfig,
+    **kwargs,
 ) -> ContextualCompressionRetriever | EnsembleRetriever:
     """
     Build the hybrid retriever (dense + sparse ensemble, optionally wrapped with a reranker)
     based on the retrieve-node section of the config.
     """
 
+    vs_dir = kwargs.get("vs_dir", None)
+    doc_dir = kwargs.get("doc_dir", None)
+    index_name = kwargs.get("index_name", None)
+
     retr_cfg = config.nodes.retrieve
-    vector_store = _build_vector_store_from_manifest()
-    #  TODO: build dict of search_kwargs manually
+    vs_config = config.vector_stores[retr_cfg.dense_vector_store_key]
+    vector_store = VS_REGISTRY[vs_config.type]["load"](
+        vs_config,
+        path=vs_dir,
+        index_name=index_name,
+    )
     dense_retriever = vector_store.as_retriever(search_kwargs=retr_cfg.dense_params)
 
     if retr_cfg.sparse_type.lower() != "bm25":
@@ -158,13 +142,13 @@ class State(TypedDict):
     metadata: dict
 
 
-def build_graph(config: RagConfig, eval_mode: bool = False):
+def build_graph(config: RagConfig, eval_mode: bool = False, **kwargs):
     if eval_mode:
         time.sleep(8)  #  prevent rate-limiting from Cohere when evaluating
 
     query_analysis_llm, generate_llm = _build_llms(config)
     analyze_query_prompt, generate_prompt = _build_prompts(config)
-    retriever = _build_retriever(config)
+    retriever = _build_retriever(config, **kwargs)
 
     def analyze_query(state: State):
         structured_llm = query_analysis_llm.with_structured_output(Search)

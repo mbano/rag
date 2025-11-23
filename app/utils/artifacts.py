@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 from huggingface_hub import snapshot_download, HfFileSystem
+from app.config import VectorStoreConfig
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -84,6 +85,7 @@ def _check_for_docs(remote_fs):
 
 
 def ensure_corpus_assets(
+    config: VectorStoreConfig,
     repo_id: str,
     revision: str = "main",
     want_sources: bool = True,
@@ -97,8 +99,15 @@ def ensure_corpus_assets(
     If missing, download from HF dataset repo
 
     Returns:
-        (faiss_dir, doc_dir)
+        (VS_dir, doc_dir)
     """
+
+    # if config.type != "faiss":
+    #     print(f"[artifacts] Vector store type {config.type} not supported.")
+    #     return None, None
+
+    #  TODO:  decouple from FAISS, generalize to other vector stores
+
     faiss_dir = ART_DIR / "faiss"
     index_faiss_path = faiss_dir / "index.faiss"
     index_pkl_path = faiss_dir / "index.pkl"

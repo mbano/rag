@@ -1,5 +1,4 @@
 from pathlib import Path
-from langchain_openai import OpenAIEmbeddings
 from dotenv import load_dotenv
 import json
 import os
@@ -59,9 +58,12 @@ def _merge_vector_stores(config: IngestionConfig):
         )
         file_names.append(source)
 
-        embeddings = OpenAIEmbeddings(model=embedding_model)
         vs_builder = VS_REGISTRY[config.vector_store.type]["load"]
-        vector_store = vs_builder(vs_path, embeddings, **config.vector_store.kwargs)
+        vector_store = vs_builder(
+            config.vector_store,
+            path=vs_path,
+            embedding_model=embedding_model,
+        )
         vector_stores.append(vector_store)
 
     main_vs = vector_stores[0]

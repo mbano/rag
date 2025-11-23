@@ -5,7 +5,6 @@ from app.config import IngestionConfig
 from app.utils.vector_stores import VS_REGISTRY
 from app.utils.docs import save_docs
 from datetime import datetime, timezone
-from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from dotenv import load_dotenv
 import json
@@ -80,9 +79,8 @@ class RiseDBIngestor:
             "last_indexed": datetime.now(timezone.utc).isoformat(),
         }
 
-        embeddings = OpenAIEmbeddings(model=self.config.vector_store.embedding_model)
         vs_builder = VS_REGISTRY[self.config.vector_store.type]["create"]
-        vs_builder(docs, embeddings, art_dest_dir)
+        vs_builder(docs, self.config.vector_store, save_dir=art_dest_dir)
 
         with open(f"{art_dest_dir}/manifest.json", "w") as f:
             json.dump(manifest, f, indent=2)

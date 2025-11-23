@@ -2,7 +2,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pydantic import BaseModel
 from app.rag_pipeline import build_graph
-from app.config import settings, RagConfig
+from app.config import get_settings, RagConfig
+from app.utils.artifacts import ensure_corpus_assets
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 class QueryRequest(BaseModel):
@@ -11,8 +16,21 @@ class QueryRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    cfg: RagConfig = settings.rag
-    graph = build_graph(cfg)
+    cfg: RagConfig = get_settings().rag
+    vs_key = cfg.nodes.retrieve.dense_vector_store_key
+    vs_dir, doc_dir = ensure_corpus_assets(
+        config=cfg.vector_stores[vs_key],
+        repo_id=os.getenv("HF_DATASET_REPO"),
+        revision=os.getenv("HF_DATASET_REVISION", "main"),
+        want_sources=True,
+    )
+    index_name = cfg.vector_stores[vs_key].kwargs.get("index_name", "rag-index")
+    graph = build_graph(
+        cfg,
+        vs_dir=vs_dir,
+        doc_dir=doc_dir,
+        index_name=index_name,
+    )
     app.state.graph = graph
     yield
 

@@ -21,4 +21,4 @@ for dir in DOC_DIR.iterdir():
 config = get_settings().rag.vector_stores["opensearch"]
 embeddings = OpenAIEmbeddings(model=config.embedding_model)
 opensearch_vs = VS_REGISTRY["opensearch"]["create"]
-opensearch_vs(docs, embeddings, config)
+opensearch_vs(docs, config)

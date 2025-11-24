@@ -1,4 +1,3 @@
-from pathlib import Path
 import pandas as pd
 from sqlalchemy import create_engine
 from app.config import IngestionConfig
@@ -7,16 +6,15 @@ from app.utils.docs import save_docs
 from datetime import datetime, timezone
 from langchain_core.documents import Document
 from dotenv import load_dotenv
-import json
 import os
+from app.utils.paths import BASE_DIR, ART_DIR, DOC_DIR
+from pathlib import Path
 
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 DB_NAME = "rise.db"
-BASE_DIR = Path(__file__).resolve().parents[2]
-ART_DIR = BASE_DIR / "artifacts"
 RISE_DB_PATH = f"sqlite:///{BASE_DIR}/data/sql/{DB_NAME}"
 
 
@@ -32,7 +30,6 @@ class RiseDBIngestor:
         """
 
         VS_DIR = ART_DIR / self.config.vector_store.type
-        DOC_DIR = ART_DIR / "documents"
 
         engine = create_engine(RISE_DB_PATH)
         query = """
@@ -61,15 +58,13 @@ class RiseDBIngestor:
                 "tenant_id": "default",
                 "pipeline_version": self.config.pipeline_version,
                 "tags": [],
-                "doc_title": "RISE CO2 Emissions",
+                "doc_title": Path(DB_NAME).stem,
             }
             doc = Document(page_content=text, metadata=metadata)
             docs.append(doc)
 
         art_dest_dir = f"{VS_DIR}/{DB_NAME.split('.')[0]}"
         doc_dest_dir = f"{DOC_DIR}/{DB_NAME.split('.')[0]}"
-
-        save_docs(docs, doc_dest_dir)
 
         manifest = {
             "vector_store": self.config.vector_store.type,
@@ -79,11 +74,17 @@ class RiseDBIngestor:
             "last_indexed": datetime.now(timezone.utc).isoformat(),
         }
 
+        save_docs(
+            docs,
+            manifest,
+            self.config.vector_store,
+            doc_save_dir=doc_dest_dir,
+            manifest_save_dir=art_dest_dir,
+        )
+
         vs_builder = VS_REGISTRY[self.config.vector_store.type]["create"]
         vs_builder(docs, self.config.vector_store, save_dir=art_dest_dir)
 
-        with open(f"{art_dest_dir}/manifest.json", "w") as f:
-            json.dump(manifest, f, indent=2)
-            print(
-                f"[{DB_NAME}_ingestor] Saved {self.config.vector_store.type} vector store to {VS_DIR}"
-            )
+        print(
+            f"[{DB_NAME}_ingestor] Saved {self.config.vector_store.type} vector store to {VS_DIR}"
+        )

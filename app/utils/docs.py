@@ -1,15 +1,16 @@
 from langchain_core.documents import Document
-from app.config import IngestionConfig
+from app.config import IngestionConfig, VectorStoreConfig
+from app.utils.vector_stores import VectorStoreType
+from app.utils.urls import url_to_resource_name
 from ftfy import fix_text
 from pathlib import Path
 from datetime import datetime, timezone
 from url_normalize import url_normalize
 import json
 import os
-
-
-BASE_DIR = Path(__file__).resolve().parents[2]
-DOC_DIR = BASE_DIR / "artifacts" / "documents"
+import boto3
+from app.utils.paths import DOC_DIR
+from typing import Any
 
 
 #  TODO: add min chunk length filtering
@@ -41,7 +42,7 @@ def process_pdf_docs(docs: list[Document], config: IngestionConfig):
         #### save as csv -> embed -> profit
         if doc.metadata["category"] == "CompositeElement":
             doc.metadata = {k: v for k, v in doc.metadata.items() if k in keep_fields}
-            doc.metadata["doc_title"] = doc.metadata["filename"]
+            doc.metadata["doc_title"] = Path(doc.metadata["filename"]).stem
             doc.metadata["doc_id"] = doc.metadata["filename"]
             doc.metadata["chunk_id"] = f"{doc.metadata['doc_id']}::{chunk_index}"
             doc.metadata["chunk_index"] = chunk_index
@@ -79,12 +80,9 @@ def process_web_docs(docs: list[Document], config: IngestionConfig):
         "url",
     ]
 
-    title = None
     for chunk_index, doc in enumerate(filtered_docs):
-        if doc.metadata.get("category") == "Title":
-            title = doc.page_content
-        doc.metadata["doc_title"] = title
         doc.metadata = {k: v for k, v in doc.metadata.items() if k in keep_fields}
+        doc.metadata["doc_title"] = url_to_resource_name(doc.metadata["url"])
         doc.metadata["doc_id"] = url_normalize(doc.metadata["url"])
         doc.metadata["source"] = doc.metadata["doc_id"]
         doc.metadata["chunk_id"] = f"{doc.metadata['doc_id']}::{chunk_index}"
@@ -99,7 +97,7 @@ def process_web_docs(docs: list[Document], config: IngestionConfig):
     return processed_docs
 
 
-def load_docs(doc_dir: Path = DOC_DIR, filename: str | None = None):
+def load_docs(doc_dir: Path = DOC_DIR, filename: str | None = None) -> list[Document]:
     """
     Load document object pertaining to file filename.
     If no filename is given, load all documents in /artifacts/documents
@@ -118,16 +116,83 @@ def load_docs(doc_dir: Path = DOC_DIR, filename: str | None = None):
     return docs
 
 
-def save_docs(documents: list[Document], path: str | None = None):
+def save_docs(
+    documents: list[Document],
+    manifest: dict[str, Any],
+    config: VectorStoreConfig,
+    **kwargs,
+):
     """
-    Save documents to a jsonl file
+    Save documents to a jsonl file and manifest to ART_DIR, or save to AWS_S3_DOCS_BUCKET
     """
 
-    path = DOC_DIR if not path else path
-    filename = f"{path}/documents.jsonl"
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    vs_type = config.type
 
-    with open(filename, "w", encoding="utf-8") as f:
+    if vs_type == VectorStoreType.FAISS:
+        path = kwargs.get("doc_save_dir", None)
+        path = DOC_DIR if not path else path
+        filename = f"{path}/documents.jsonl"
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+        with open(filename, "w", encoding="utf-8") as f:
+            for doc in documents:
+                json.dump(
+                    {"page_content": doc.page_content, "metadata": doc.metadata}, f
+                )
+                f.write("\n")
+
+        path = kwargs.get("manifest_save_dir", None)
+        with open(f"{path}/manifest.json", "w") as f:
+            json.dump(
+                manifest, f, indent=2, default=str, sort_keys=True, ensure_ascii=False
+            )
+
+    elif vs_type == VectorStoreType.OPENSEARCH:
+        s3 = boto3.client("s3")
+        bucket = os.getenv("AWS_S3_DOCS_BUCKET")
+
+        try:
+            resp = s3.get_object(
+                Bucket="rag-app-chunkated-docs-bucket", Key="documents/documents.jsonl"
+            )
+            data = resp["Body"].read().decode("utf-8")
+            lines = data.splitlines()
+            docs_loaded = [json.loads(line) for line in lines]
+
+        except s3.exceptions.NoSuchKey:
+            docs_loaded = []
+
         for doc in documents:
-            json.dump({"page_content": doc.page_content, "metadata": doc.metadata}, f)
-            f.write("\n")
+            docs_loaded.append(
+                {"page_content": doc.page_content, "metadata": doc.metadata}
+            )
+
+        body = "\n".join(json.dumps(doc) for doc in docs_loaded)
+        s3.put_object(
+            Body=body.encode("utf-8"), Bucket=bucket, Key="documents/documents.jsonl"
+        )
+
+        try:
+            resp = s3.get_object(
+                Bucket="rag-app-chunkated-docs-bucket", Key="manifests/manifests.json"
+            )
+            data = resp["Body"].read().decode("utf-8")
+            manifests = json.loads(data)
+
+        except s3.exceptions.NoSuchKey:
+            manifests = {}
+
+        filename = documents[0].metadata["doc_title"]
+        pipeline_version = documents[0].metadata["pipeline_version"]
+        previous_pipeline_version = manifests.get(filename, {}).get(
+            "pipeline_version", None
+        )
+        if pipeline_version != previous_pipeline_version:
+            manifests[filename] = manifest
+
+        body = json.dumps(
+            manifests, indent=2, default=str, sort_keys=True, ensure_ascii=False
+        )
+        s3.put_object(
+            Body=body.encode("utf-8"), Bucket=bucket, Key="manifests/manifests.json"
+        )

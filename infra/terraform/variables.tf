@@ -43,5 +43,5 @@ variable "task_memory" {
 variable "desired_count" {
     description = "Number of instances of the ECS task to keep running"
     type        = number
-    default     = 1
+    default     = 0
 }

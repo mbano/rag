@@ -60,3 +60,40 @@ resource "aws_iam_role" "ecs_task" {
         ]
     })
 }
+
+resource "aws_iam_policy" "ecs_task_s3_access" {
+    name = "${var.app_name}-task-s3-access"
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Action = [
+                    "s3:ListBucket",
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject",
+                ]
+                Effect = "Allow"
+                Resource = [
+                    "${aws_s3_bucket.source_files.arn}/*",
+                    "${aws_s3_bucket.documents.arn}/*",
+                ]
+            },
+            {
+                Action = [
+                    "s3:ListBucket",
+                ]
+                Effect = "Allow"
+                Resource = [
+                    aws_s3_bucket.source_files.arn,
+                    aws_s3_bucket.documents.arn,
+                ]
+            }
+        ]
+    })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_s3_access" {
+    role       = aws_iam_role.ecs_task.name
+    policy_arn = aws_iam_policy.ecs_task_s3_access.arn
+}

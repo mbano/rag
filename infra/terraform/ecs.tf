@@ -87,6 +87,14 @@ resource "aws_ecs_task_definition" "app" {
                 {
                     "name": "OPENSEARCH_DASHBOARD_ENDPOINT",
                     "value": aws_opensearchserverless_collection.rag_app.dashboard_endpoint
+                },
+                {
+                    "name": "AWS_S3_SOURCE_FILES_BUCKET",
+                    "value": "${var.app_name}-source-files-bucket"
+                },
+                {
+                    "name": "AWS_S3_DOCS_BUCKET",
+                    "value": "${var.app_name}-chunkated-docs-bucket"
                 }
             ],
             "secrets": [

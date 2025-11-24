@@ -3,23 +3,21 @@ from dotenv import load_dotenv
 import json
 import os
 from app.config import settings, IngestionConfig
-from app.utils.vector_stores import VS_REGISTRY
+from app.utils.opensearch import get_opensearch_langchain_kwargs
+from opensearchpy import OpenSearch
+import boto3
+from app.utils.vector_stores import VS_REGISTRY, VectorStoreType
 from datetime import datetime, timezone
 from app.utils.urls import url_to_resource_name
 from ingestion.pdf_ingestor import ingest_pdf
 from ingestion.web_ingestor import ingest_web
 from app.utils.db_ingestors import get_db_ingestor
+from app.utils.paths import ART_DIR, DATA_DIR
 
 # local fallback
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-PDF_DIR = DATA_DIR / "pdf"
-ART_DIR = BASE_DIR / "artifacts"
-DOC_DIR = ART_DIR / "documents"
 
 
 #  TODO:  update remote repo too
@@ -27,16 +25,42 @@ DOC_DIR = ART_DIR / "documents"
 
 def _check_for_vs(file_name, config: IngestionConfig):
 
-    VS_DIR = ART_DIR / config.vector_store.type
+    if config.vector_store.type == VectorStoreType.FAISS:
 
-    for vs_path in Path(VS_DIR).glob("*"):
-        if vs_path.stem == file_name:
-            index_faiss_path = vs_path / "index.faiss"
-            index_pkl_path = vs_path / "index.pkl"
-            manifest_path = vs_path / "manifest.json"
-            return all(
-                p.exists() for p in [index_faiss_path, index_pkl_path, manifest_path]
-            )
+        VS_DIR = ART_DIR / config.vector_store.type
+
+        for vs_path in Path(VS_DIR).glob("*"):
+            if vs_path.stem == file_name:
+                index_faiss_path = vs_path / "index.faiss"
+                index_pkl_path = vs_path / "index.pkl"
+                manifest_path = vs_path / "manifest.json"
+                return all(
+                    p.exists()
+                    for p in [index_faiss_path, index_pkl_path, manifest_path]
+                )
+
+    elif config.vector_store.type == VectorStoreType.OPENSEARCH:
+
+        endpoint = os.environ["OPENSEARCH_COLLECTION_ENDPOINT"]
+        client = OpenSearch(endpoint, **get_opensearch_langchain_kwargs())
+        index_exists = client.indices.exists(
+            index=config.vector_store.kwargs.get("index_name")
+        )
+
+        if index_exists:
+            s3 = boto3.client("s3")
+            try:
+                resp = s3.get_object(
+                    Bucket=os.environ["AWS_S3_DOCS_BUCKET"],
+                    Key="manifests/manifests.json",
+                )
+            except s3.exceptions.NoSuchKey:
+                return False
+            data = resp["Body"].read().decode("utf-8")
+            manifests = json.loads(data)
+            if file_name in manifests:
+                print(f"[update_vectorstores] {file_name} already indexed.")
+                return True
     return False
 
 
@@ -115,7 +139,7 @@ def update_vector_stores(config: IngestionConfig):
                     db_ingestor.ingest()
                     added_vs = True
 
-    if added_vs:
+    if added_vs and config.vector_store.type == VectorStoreType.FAISS:
         _merge_vector_stores(config)
         print("Merged existing vector stores.")
     else:

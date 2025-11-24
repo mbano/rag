@@ -2,19 +2,16 @@ from app.config import IngestionConfig
 from app.utils.docs import process_pdf_docs, save_docs
 from app.utils.vector_stores import VS_REGISTRY
 from app.utils.loaders import LOADER_REGISTRY
-import json
 import os
 from pathlib import Path
 from datetime import datetime, timezone
 from dotenv import load_dotenv
+from app.utils.paths import ART_DIR, DOC_DIR
 
 
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-BASE_DIR = Path(__file__).resolve().parents[1]
-ART_DIR = BASE_DIR / "artifacts"
 
 
 def ingest_pdf(file_path: Path, config: IngestionConfig):
@@ -24,7 +21,6 @@ def ingest_pdf(file_path: Path, config: IngestionConfig):
     """
 
     VS_DIR = ART_DIR / config.vector_store.type
-    DOC_DIR = ART_DIR / "documents"
 
     loader_builder = LOADER_REGISTRY[config.pdf.loader.type]["pdf"]
     loader = loader_builder(file_path, **config.pdf.loader.params)
@@ -37,8 +33,6 @@ def ingest_pdf(file_path: Path, config: IngestionConfig):
     art_dest_dir = f"{VS_DIR}/{file_path.stem}"
     doc_dest_dir = f"{DOC_DIR}/{file_path.stem}"
 
-    save_docs(processed_docs, doc_dest_dir)
-
     manifest = {
         "vector_store": config.vector_store.type,
         "embedding_model": config.vector_store.embedding_model,
@@ -48,11 +42,15 @@ def ingest_pdf(file_path: Path, config: IngestionConfig):
         "last_indexed": datetime.now(timezone.utc).isoformat(),
     }
 
+    save_docs(
+        processed_docs,
+        manifest,
+        config.vector_store,
+        doc_save_dir=doc_dest_dir,
+        manifest_save_dir=art_dest_dir,
+    )
+
     vs_builder = VS_REGISTRY[config.vector_store.type]["create"]
     vs_builder(processed_docs, config.vector_store, save_dir=art_dest_dir)
 
-    with open(f"{art_dest_dir}/manifest.json", "w") as f:
-        json.dump(manifest, f, indent=2)
-        print(
-            f"[pdf_ingestor] Saved {config.vector_store.type} vector store to {VS_DIR}"
-        )
+    print(f"[pdf_ingestor] Saved {config.vector_store.type} vector store to {VS_DIR}")

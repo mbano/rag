@@ -5,7 +5,14 @@ from app.utils.opensearch import get_opensearch_langchain_kwargs
 from langchain_openai import OpenAIEmbeddings
 import os
 import json
+from enum import StrEnum
 from pathlib import Path
+
+
+class VectorStoreType(StrEnum):
+    FAISS = "faiss"
+    OPENSEARCH = "opensearch"
+
 
 VectorStoreBuilder = Callable[..., object]
 
@@ -105,11 +112,11 @@ def _create_faiss(docs, cfg: VectorStoreConfig, **kwargs):
 
 
 VS_REGISTRY: dict[str, dict[str, VectorStoreBuilder]] = {
-    "faiss": {
+    VectorStoreType.FAISS: {
         "create": _create_faiss,
         "load": _load_faiss,
     },
-    "opensearch": {
+    VectorStoreType.OPENSEARCH: {
         "create": _create_opensearch,
         "load": _load_opensearch,
     },

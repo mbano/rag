@@ -97,3 +97,26 @@ resource "aws_iam_role_policy_attachment" "ecs_task_s3_access" {
     role       = aws_iam_role.ecs_task.name
     policy_arn = aws_iam_policy.ecs_task_s3_access.arn
 }
+
+resource "aws_iam_policy" "ecs_task_aoss_access" {
+    name = "${var.app_name}-task-aoss-access"
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Action = [
+                    "aoss:APIAccessAll"
+                ]
+                Effect = "Allow"
+                Resource = [
+                    aws_opensearchserverless_collection.rag_app.arn
+                ]
+            }
+        ]
+    })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_aoss_access" {
+    role       = aws_iam_role.ecs_task.name
+    policy_arn = aws_iam_policy.ecs_task_aoss_access.arn
+}

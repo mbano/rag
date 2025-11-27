@@ -54,3 +54,4 @@ def ingest_pdf(file_path: Path, config: IngestionConfig):
     vs_builder(processed_docs, config.vector_store, save_dir=art_dest_dir)
 
     print(f"[pdf_ingestor] Saved {config.vector_store.type} vector store to {VS_DIR}")
+    print(f"[pdf_ingestor] number of pdf docs: {len(processed_docs)}")

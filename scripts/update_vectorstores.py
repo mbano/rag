@@ -47,20 +47,29 @@ def _check_for_vs(file_name, config: IngestionConfig):
             index=config.vector_store.kwargs.get("index_name")
         )
 
-        if index_exists:
-            s3 = boto3.client("s3")
-            try:
-                resp = s3.get_object(
-                    Bucket=os.environ["AWS_S3_DOCS_BUCKET"],
-                    Key="manifests/manifests.json",
-                )
-            except s3.exceptions.NoSuchKey:
-                return False
-            data = resp["Body"].read().decode("utf-8")
-            manifests = json.loads(data)
-            if file_name in manifests:
-                print(f"[update_vectorstores] {file_name} already indexed.")
-                return True
+        s3 = boto3.client("s3")
+
+        if not index_exists:
+            s3.delete_object(
+                Bucket=os.environ["AWS_S3_DOCS_BUCKET"],
+                Key="manifests/manifests.json",
+            )
+            return False
+
+        try:
+            resp = s3.get_object(
+                Bucket=os.environ["AWS_S3_DOCS_BUCKET"],
+                Key="manifests/manifests.json",
+            )
+        except s3.exceptions.NoSuchKey:
+            return False
+
+        data = resp["Body"].read().decode("utf-8")
+        manifests = json.loads(data)
+        if file_name in manifests:
+            print(f"[update_vectorstores] {file_name} already indexed.")
+            return True
+
     return False
 
 

@@ -26,12 +26,6 @@ LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT")
 HF_DATASET_REPO = os.getenv("HF_DATASET_REPO")
 HF_REVISION = os.getenv("HF_DATASET_REVISION", "main")
 
-# VS_DIR, doc_dir = ensure_corpus_assets(
-#     repo_id=HF_DATASET_REPO,
-#     revision=HF_REVISION,
-#     want_sources=True,
-# )
-
 
 def _build_retriever(
     config: RagConfig,
@@ -42,12 +36,11 @@ def _build_retriever(
     based on the retrieve-node section of the config.
     """
 
-    vs_dir = kwargs.get("vs_dir", None)
-    doc_dir = kwargs.get("doc_dir", None)
-    index_name = kwargs.get("index_name", None)
-
     retr_cfg = config.nodes.retrieve
     vs_config = config.vector_stores[retr_cfg.dense_vector_store_key]
+    vs_dir = kwargs.get("vs_dir")
+    doc_dir = kwargs.get("doc_dir")
+    index_name = kwargs.get("index_name", None)
     vector_store = VS_REGISTRY[vs_config.type]["load"](
         vs_config,
         path=vs_dir,
@@ -58,7 +51,7 @@ def _build_retriever(
     if retr_cfg.sparse_type.lower() != "bm25":
         raise ValueError(f"Unsupported sparse retriever type: {retr_cfg.sparse_type}")
 
-    docs = load_docs(doc_dir)
+    docs = load_docs(vs_config, doc_dir=doc_dir)
     sparse_retriever = BM25Retriever.from_documents(
         docs,
         **retr_cfg.sparse_params,

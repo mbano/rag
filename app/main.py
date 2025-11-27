@@ -3,7 +3,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from app.rag_pipeline import build_graph
 from app.config import get_settings, RagConfig
+from app.utils.vector_stores import VectorStoreType
 from app.utils.artifacts import ensure_corpus_assets
+from app.utils.paths import DOC_DIR, ART_DIR
 from dotenv import load_dotenv
 import os
 
@@ -18,12 +20,16 @@ class QueryRequest(BaseModel):
 async def lifespan(app: FastAPI):
     cfg: RagConfig = get_settings().rag
     vs_key = cfg.nodes.retrieve.dense_vector_store_key
-    vs_dir, doc_dir = ensure_corpus_assets(
-        config=cfg.vector_stores[vs_key],
-        repo_id=os.getenv("HF_DATASET_REPO"),
-        revision=os.getenv("HF_DATASET_REVISION", "main"),
-        want_sources=True,
-    )
+    vs_config = cfg.vector_stores[vs_key]
+    vs_dir = ART_DIR / vs_config.type
+    doc_dir = DOC_DIR
+    if vs_config.type == VectorStoreType.FAISS:
+        vs_dir, doc_dir = ensure_corpus_assets(
+            config=vs_config,
+            repo_id=os.getenv("HF_DATASET_REPO"),
+            revision=os.getenv("HF_DATASET_REVISION", "main"),
+            want_sources=True,
+        )
     index_name = cfg.vector_stores[vs_key].kwargs.get("index_name", "rag-index")
     graph = build_graph(
         cfg,

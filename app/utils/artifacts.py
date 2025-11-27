@@ -4,16 +4,12 @@ import os
 from pathlib import Path
 from huggingface_hub import snapshot_download, HfFileSystem
 from app.config import VectorStoreConfig
+from app.utils.paths import DOC_DIR, ART_DIR, PDF_DIR, WEB_DIR
 from dotenv import load_dotenv
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parents[2]
-DATA_DIR = BASE_DIR / "data"
-PDF_DIR = DATA_DIR / "pdf"
-ART_DIR = BASE_DIR / "artifacts"
-DOC_DIR = ART_DIR / "documents"
-WEB_DIR = DATA_DIR / "web"
 HF_DATASET_REPO = os.getenv("HF_DATASET_REPO")
 
 
@@ -119,6 +115,8 @@ def ensure_corpus_assets(
         index_faiss_path.exists() and index_pkl_path.exists() and manifest_path.exists()
     )
     have_docs = doc_dir.exists()
+
+    print(f"[artifacts] have_faiss: {have_faiss}, have_docs: {have_docs}")
 
     if have_faiss and have_docs and not want_sources:
         return faiss_dir, doc_dir

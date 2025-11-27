@@ -87,4 +87,5 @@ class RiseDBIngestor:
 
         print(
             f"[{DB_NAME}_ingestor] Saved {self.config.vector_store.type} vector store to {VS_DIR}"
+            f"[{DB_NAME}_ingestor] number of docs: {len(docs)}"
         )

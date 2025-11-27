@@ -97,7 +97,9 @@ def process_web_docs(docs: list[Document], config: IngestionConfig):
     return processed_docs
 
 
-def load_docs(doc_dir: Path = DOC_DIR, filename: str | None = None) -> list[Document]:
+def load_docs(
+    config: VectorStoreConfig, filename: str | None = None, **kwargs
+) -> list[Document]:
     """
     Load document object pertaining to file filename.
     If no filename is given, load all documents in /artifacts/documents
@@ -107,12 +109,24 @@ def load_docs(doc_dir: Path = DOC_DIR, filename: str | None = None) -> list[Docu
 
     #  TODO: implement loading only docs from filename
 
-    docs = []
-    for dir in doc_dir.glob("*/"):
-        with open(dir / "documents.jsonl", "r", encoding="utf-8") as f:
-            for line in f:
-                data = json.loads(line)
-                docs.append(Document(**data))
+    if config.type == VectorStoreType.FAISS:
+        doc_dir = Path(kwargs.get("doc_dir", DOC_DIR))
+        docs = []
+        for dir in doc_dir.glob("*/"):
+            with open(dir / "documents.jsonl", "r", encoding="utf-8") as f:
+                for line in f:
+                    data = json.loads(line)
+                    docs.append(Document(**data))
+
+    elif config.type == VectorStoreType.OPENSEARCH:
+        s3 = boto3.client("s3")
+        bucket = os.getenv("AWS_S3_DOCS_BUCKET")
+        resp = s3.get_object(Bucket=bucket, Key="documents/documents.jsonl")
+        data = resp["Body"].read().decode("utf-8")
+        lines = data.splitlines()
+        docs = [Document(**json.loads(line)) for line in lines]
+
+    print(f"[load_docs] number of docs loaded: {len(docs)}")
     return docs
 
 
@@ -163,9 +177,12 @@ def save_docs(
             docs_loaded = []
 
         for doc in documents:
-            docs_loaded.append(
-                {"page_content": doc.page_content, "metadata": doc.metadata}
-            )
+            if not _doc_exists(doc, docs_loaded):
+                docs_loaded.append(
+                    {"page_content": doc.page_content, "metadata": doc.metadata}
+                )
+
+        print(f"[save_docs] number of docs: {len(docs_loaded)}")
 
         body = "\n".join(json.dumps(doc) for doc in docs_loaded)
         s3.put_object(
@@ -196,3 +213,13 @@ def save_docs(
         s3.put_object(
             Body=body.encode("utf-8"), Bucket=bucket, Key="manifests/manifests.json"
         )
+
+
+def _doc_exists(doc: Document, doc_list: list[dict]):
+
+    doc_chunk_id = set()
+
+    for doc_dict in doc_list:
+        doc_chunk_id.add(doc_dict["metadata"]["chunk_id"])
+
+    return doc.metadata["chunk_id"] in doc_chunk_id

@@ -37,6 +37,14 @@ Thumbs.db
 # Docker
 *.log
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.crash.log
+*.tfvars
+*.tfvars.json
+
 # caches
 .mypy_cache/
 .ruff_cache/

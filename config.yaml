@@ -34,7 +34,7 @@ nodes:
     prompt: "query_analysis_v1.txt"
   retrieve:
     dense:
-      vector_store: "opensearch"
+      vector_store: "faiss"
       params:
         k: 10
     sparse:
@@ -56,7 +56,7 @@ nodes:
 
 ingestion:
   pipeline_version: "1.0.0"
-  vector_store: "opensearch"
+  vector_store: "faiss"
   sources:
     pdf:
       loader:

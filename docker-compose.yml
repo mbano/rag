@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    image: rag-backend:latest
+    container_name: rag-backend
+    network_mode: bridge
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    gpus: all
+    restart: unless-stopped

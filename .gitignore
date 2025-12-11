@@ -1,6 +1,8 @@
 # large artifacts and data - these go to HF dataset repo
 data/*
 artifacts/*
+evaluation/datasets/*
+evaluation/runs/*
 
 # keep small metadata files
 !data/README.md

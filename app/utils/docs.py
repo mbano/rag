@@ -176,11 +176,16 @@ def save_docs(
         except s3.exceptions.NoSuchKey:
             docs_loaded = []
 
+        doc_chunk_ids = set()
+        for doc_dict in docs_loaded:
+            doc_chunk_ids.add(doc_dict["metadata"]["chunk_id"])
+
         for doc in documents:
-            if not _doc_exists(doc, docs_loaded):
+            if doc.metadata["chunk_id"] not in doc_chunk_ids:
                 docs_loaded.append(
                     {"page_content": doc.page_content, "metadata": doc.metadata}
                 )
+                doc_chunk_ids.add(doc.metadata["chunk_id"])
 
         print(f"[save_docs] number of docs: {len(docs_loaded)}")
 
@@ -213,13 +218,3 @@ def save_docs(
         s3.put_object(
             Body=body.encode("utf-8"), Bucket=bucket, Key="manifests/manifests.json"
         )
-
-
-def _doc_exists(doc: Document, doc_list: list[dict]):
-
-    doc_chunk_id = set()
-
-    for doc_dict in doc_list:
-        doc_chunk_id.add(doc_dict["metadata"]["chunk_id"])
-
-    return doc.metadata["chunk_id"] in doc_chunk_id

@@ -38,7 +38,7 @@ jobs:
 
       - name: Download NLTK extras
         run: |
-          python -m nltk.downloader stopwords punktab abc
+          python -m nltk.downloader stopwords punkt_tab abc
 
       - name: Run black
         run: black --check .

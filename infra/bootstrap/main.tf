@@ -166,8 +166,7 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       "ec2:*",
       "secretsmanager:*",
       "ecr:ListTagsForResource",
-      "aoss:GetSecurityPolicy",
-      "aoss:GetAccessPolicy",
+      "aoss:*",
     ]
 
     resources = ["*"]

@@ -174,7 +174,7 @@ Response: {"message": "status OK"}
 
 ### Frontend
 
-A Next.js frontend is available at `frontend/nextjs-app/`. **Note: The frontend is only supported when the backend is run locally.**
+A Next.js frontend is available at `frontend/nextjs-app/`. **Note: The frontend is currently only supported when the backend is run locally.**
 
 To run the frontend:
 ```bash
@@ -187,26 +187,39 @@ The frontend will be available at `http://localhost:3000`.
 
 ### Data Ingestion
 
-#### PDF Ingestion
+Data ingestion requires placing source files or web URLs in their corresponding folders within `/data`, then running the ingestion script:
+
 ```bash
-python ingestion/pdf_ingestor.py
+python scripts/update_vectorstores.py
 ```
 
-Ingests PDF documents and creates vector embeddings. Configuration is defined in `config.yaml` under the `ingestion` section.
+#### PDF Documents
 
-#### Web Ingestion
-```bash
-python ingestion/web_ingestor.py
+Place PDF files in the `/data/pdf` directory. The system will automatically process them during ingestion.
+
+#### Web Pages
+
+Create a `/data/web/urls.json` file with the following structure:
+
+```json
+{
+    "urls": [
+        "https://first.web.url",
+        "https://second.web.url"
+    ]
+}
 ```
 
-Ingests web pages and creates vector embeddings.
+#### SQL Databases
 
-#### Database Ingestion
-```bash
-python ingestion/db_ingestors/db_rise.py
-```
+SQL database ingestion requires creating a custom ingestor for each database. To add a new database source:
 
-Ingests data from SQL databases.
+1. Create a new Python file under `/ingestion/db_ingestors/`
+2. Add an entry to `DB_INGESTOR_REGISTRY` in `app/utils/db_ingestors.py`
+
+#### FAISS Index Download
+
+On startup, the application automatically attempts to download FAISS indices and source documents from the configured Hugging Face repository (if `HF_DATASET_REPO` is set).
 
 ### Evaluation
 

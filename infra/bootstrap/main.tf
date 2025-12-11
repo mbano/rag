@@ -160,10 +160,14 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies",
       "iam:CreateServiceLinkedRole",
+      "iam:GetPolicy",
       "opensearch:*",
       "s3:*",
       "ec2:*",
       "secretsmanager:*",
+      "ecr:ListTagsForResource",
+      "aoss:GetSecurityPolicy",
+      "aoss:GetAccessPolicy",
     ]
 
     resources = ["*"]

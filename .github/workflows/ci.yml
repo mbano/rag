@@ -36,6 +36,10 @@ jobs:
           pip install -r requirements-dev.txt
           pip install -e .
 
+      - name: Download NLTK stopwords
+        run: |
+          python -m ntlk.downloader stopwords
+
       - name: Run black
         run: black --check .
 

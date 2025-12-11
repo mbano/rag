@@ -1,6 +1,6 @@
 # RAG Backend
 
-A production-ready Retrieval-Augmented Generation (RAG) system built with LangChain, FastAPI, and LangGraph. This system provides intelligent question-answering capabilities by combining dense and sparse retrieval methods with large language models.
+A Retrieval-Augmented Generation (RAG) system built with LangChain, FastAPI, and LangGraph. This system provides intelligent question-answering capabilities by combining dense and sparse retrieval methods with large language models.
 
 ## Features
 

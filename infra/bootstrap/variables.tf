@@ -19,5 +19,5 @@ variable "github_owner" {
 variable "github_repo" {
     type        = string
     description = "GitHub repository name"
-    default     = "mbano/rag"
+    default     = "rag"
 }

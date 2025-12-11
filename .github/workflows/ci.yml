@@ -38,7 +38,7 @@ jobs:
 
       - name: Download NLTK stopwords
         run: |
-          python -m ntlk.downloader stopwords
+          python -m nltk.downloader stopwords
 
       - name: Run black
         run: black --check .

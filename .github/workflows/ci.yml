@@ -18,6 +18,7 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
       LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
 
     steps:

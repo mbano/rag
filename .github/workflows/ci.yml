@@ -36,9 +36,9 @@ jobs:
           pip install -r requirements-dev.txt
           pip install -e .
 
-      - name: Download NLTK stopwords
+      - name: Download NLTK extras
         run: |
-          python -m nltk.downloader stopwords
+          python -m nltk.downloader stopwords, punktab, abc
 
       - name: Run black
         run: black --check .

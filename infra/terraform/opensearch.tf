@@ -74,10 +74,13 @@ resource "aws_opensearchserverless_access_policy" "data_access_policy" {
                     Permission = ["aoss:*"]
                 }
             ],
-            Principal = [
-                data.aws_caller_identity.current.arn,
-                aws_iam_role.ecs_task.arn
-            ]
+            Principal = concat(
+                [
+                    data.aws_caller_identity.current.arn,
+                    aws_iam_role.ecs_task.arn
+                ],
+                var.developer_aim_arns
+            )
         }
     ])
 }

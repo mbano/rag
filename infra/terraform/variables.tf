@@ -45,3 +45,9 @@ variable "desired_count" {
     type        = number
     default     = 1
 }
+
+variable "developer_iam_arns" {
+    description = "List of IAM user/role ARNs for local devs who need OpenSearch access"
+    type        = list(string)
+    default     = []
+}

@@ -94,14 +94,6 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
-        run: docker build -t "${APP_NAME}:${IMAGE_TAG}" .
-
-      - name: Tag & push Docker image
-        run: |
-          docker tag "${APP_NAME}:${IMAGE_TAG}" "${ECR_REPO}:${IMAGE_TAG}"
-          docker push "${ECR_REPO}:${IMAGE_TAG}"
-
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -117,3 +109,11 @@ jobs:
             -input=false \
             -var="container_image_tag=${IMAGE_TAG}" \
             -var="desired_count=1"
+
+      - name: Build Docker image
+        run: docker build -t "${APP_NAME}:${IMAGE_TAG}" .
+
+      - name: Tag & push Docker image
+        run: |
+          docker tag "${APP_NAME}:${IMAGE_TAG}" "${ECR_REPO}:${IMAGE_TAG}"
+          docker push "${ECR_REPO}:${IMAGE_TAG}"

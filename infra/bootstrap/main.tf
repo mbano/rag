@@ -161,7 +161,7 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       "iam:ListAttachedRolePolicies",
       "iam:CreateServiceLinkedRole",
       "iam:GetPolicy",
-      "opensearch:*",
+      "iam:GetPolicyVersion",
       "s3:*",
       "ec2:*",
       "secretsmanager:*",

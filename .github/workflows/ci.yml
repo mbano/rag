@@ -64,6 +64,7 @@ jobs:
       AWS_REGION: eu-north-1
       ECR_REPO_NAME: rag-app-repo
       IMAGE_TAG: ${{ github.sha }}
+      OPENSEARCH_COLLECTION_ENDPOINT: ${{ vars.OPENSEARCH_COLLECTION_ENDPOINT }}
 
     steps:
       - name: Checkout

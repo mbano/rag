@@ -157,15 +157,18 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       "logs:*",
       "iam:PassRole",
       "iam:GetRole",
+      "iam:CreateRole",
       "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies",
       "iam:CreateServiceLinkedRole",
       "iam:GetPolicy",
       "iam:GetPolicyVersion",
+      "iam:CreatePolicy",
       "s3:*",
       "ec2:*",
       "secretsmanager:*",
       "ecr:ListTagsForResource",
+      "ecr:CreateRepository",
       "aoss:*",
     ]
 

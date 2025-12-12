@@ -109,7 +109,7 @@ jobs:
             -input=false \
             -var="container_image_tag=${IMAGE_TAG}" \
             -var="desired_count=1" \
-            -var="developer_iam_arns=[]"
+            -var="developer_iam_arns=['${{ vars.DEVELOPER_IAM_ARN }}']"
 
       - name: Build Docker image
         run: docker build -t "${APP_NAME}:${IMAGE_TAG}" .

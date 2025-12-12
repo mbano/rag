@@ -65,6 +65,8 @@ jobs:
       ECR_REPO_NAME: rag-app-repo
       IMAGE_TAG: ${{ github.sha }}
       OPENSEARCH_COLLECTION_ENDPOINT: ${{ vars.OPENSEARCH_COLLECTION_ENDPOINT }}
+      AWS_S3_SOURCE_FILES_BUCKET: ${{ vars.AWS_S3_SOURCE_FILES_BUCKET }}
+      AWS_S3_DOCS_BUCKET: ${{ vars.AWS_S3_DOCS_BUCKET }}
 
     steps:
       - name: Checkout

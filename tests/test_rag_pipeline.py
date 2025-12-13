@@ -31,18 +31,31 @@ def test_build_llms_creates_correct_instances():
     """Test LLM instantiation from config"""
     from app.rag_pipeline import _build_llms
     from app.config import load_config
+    from unittest.mock import MagicMock, patch
 
     config = load_config()
 
-    query_llm, generate_llm = _build_llms(config.rag)
+    # Mock init_chat_model to avoid API calls
+    with patch("app.rag_pipeline.init_chat_model") as mock_init:
+        # Create mock LLM objects
+        mock_llm = MagicMock()
+        mock_llm.temperature = 0.0
+        mock_init.return_value = mock_llm
 
-    # Both should be created
-    assert query_llm is not None
-    assert generate_llm is not None
+        query_llm, generate_llm = _build_llms(config.rag)
 
-    # Should have correct temperatures
-    assert hasattr(query_llm, "temperature") or hasattr(query_llm, "model_kwargs")
-    assert hasattr(generate_llm, "temperature") or hasattr(generate_llm, "model_kwargs")
+        # Both should be created
+        assert query_llm is not None
+        assert generate_llm is not None
+
+        # Verify init_chat_model was called twice (once for each LLM)
+        assert mock_init.call_count == 2
+
+        # Verify the models have temperature attribute
+        assert hasattr(query_llm, "temperature") or hasattr(query_llm, "model_kwargs")
+        assert hasattr(generate_llm, "temperature") or hasattr(
+            generate_llm, "model_kwargs"
+        )
 
 
 def test_build_prompts_loads_templates():

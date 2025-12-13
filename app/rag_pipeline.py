@@ -40,11 +40,9 @@ def _build_retriever(
     vs_config = config.vector_stores[retr_cfg.dense_vector_store_key]
     vs_dir = kwargs.get("vs_dir")
     doc_dir = kwargs.get("doc_dir")
-    index_name = kwargs.get("index_name", None)
     vector_store = VS_REGISTRY[vs_config.type]["load"](
         vs_config,
         path=vs_dir,
-        index_name=index_name,
     )
     dense_retriever = vector_store.as_retriever(search_kwargs=retr_cfg.dense_params)
 

@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any
 from dataclasses import dataclass, field
 from dotenv import load_dotenv
+from app.utils.paths import BASE_DIR
 
 load_dotenv()
-PROJECT_ROOT = Path(__file__).resolve().parents[0]
-DEFAULT_CONFIG_PATH = PROJECT_ROOT.with_name("config.yaml")
+DEFAULT_CONFIG_PATH = BASE_DIR / "config.yaml"
 
 #  QA
 
@@ -227,6 +227,9 @@ def _load_ingestion_config(path) -> IngestionConfig:
 @dataclass
 class EvalConfig:
     llm: LLMConfig
+    ref_dataset: str
+    eval_dataset: str
+    ragas_metrics: list[str]
 
 
 def _load_eval_config(path) -> IngestionConfig:
@@ -238,8 +241,17 @@ def _load_eval_config(path) -> IngestionConfig:
         model_name=raw["llms"][llm_key]["model_name"],
         model_provider=raw["llms"][llm_key]["model_provider"],
     )
+    eval_raw = raw["evaluation"]
+    ref_dataset = eval_raw["ref_dataset"]
+    eval_dataset = eval_raw["eval_dataset"]
+    ragas_metrics = eval_raw["ragas_metrics"]
 
-    return EvalConfig(llm=llm)
+    return EvalConfig(
+        llm=llm,
+        ref_dataset=ref_dataset,
+        eval_dataset=eval_dataset,
+        ragas_metrics=ragas_metrics,
+    )
 
 
 #  settings

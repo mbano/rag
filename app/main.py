@@ -31,12 +31,10 @@ async def lifespan(app: FastAPI):
             revision=os.getenv("HF_DATASET_REVISION", "main"),
             want_sources=True,
         )
-    index_name = cfg.vector_stores[vs_key].kwargs.get("index_name", "rag-index")
     graph = build_graph(
         cfg,
         vs_dir=vs_dir,
         doc_dir=doc_dir,
-        index_name=index_name,
     )
     app.state.graph = graph
     yield

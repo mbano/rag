@@ -10,7 +10,7 @@ A Retrieval-Augmented Generation (RAG) system built with LangChain, FastAPI, and
 - **Flexible Configuration**: YAML-based configuration for easy customization
 - **Vector Store Support**: FAISS (local) and OpenSearch (production)
 - **LLM Integration**: OpenAI GPT models with support for query analysis and answer generation
-- **Evaluation Framework**: Built-in evaluation using LangSmith and local evaluation tools
+- **Evaluation Framework**: Built-in evaluation using LangSmith
 - **Production Ready**: Docker support, AWS infrastructure (Terraform), CI/CD pipeline
 - **Monitoring**: LangSmith integration for tracing and debugging
 
@@ -187,6 +187,8 @@ The frontend will be available at `http://localhost:3000`.
 
 ### Data Ingestion
 
+**Important**: Before using the application for the first time, you must run the ingestion script to create the vector store indices. This is required for the system to function properly.
+
 Data ingestion requires placing source files or web URLs in their corresponding folders within `/data`, then running the ingestion script:
 
 ```bash
@@ -223,26 +225,17 @@ On startup, the application automatically attempts to download FAISS indices and
 
 ### Evaluation
 
-#### LangSmith Evaluation
+Run evaluations using LangSmith for tracking and analysis:
+
 ```bash
-python evaluation/langsmith_eval.py
+python evaluation/scripts/langsmith_eval.py
 ```
 
-Run evaluations using LangSmith for tracking and analysis.
+To generate evaluation datasets for testing:
 
-#### Local Evaluation
 ```bash
-python evaluation/local_eval.py
+python evaluation/scripts/populate_dataset.py
 ```
-
-Run evaluations locally without external services.
-
-#### Populate Dataset
-```bash
-python evaluation/populate_dataset.py
-```
-
-Generate evaluation datasets for testing.
 
 ## Testing
 
@@ -259,20 +252,12 @@ pytest tests/test_vector_stores.py
 
 ## Scripts
 
-### Update Vector Stores
+### Update Vector Stores and S3 buckets
 ```bash
 python scripts/update_vectorstores.py
 ```
 
-Update existing vector stores with new data.
-
-### Upload to S3
-```bash
-python scripts/upload_docs_to_s3.py
-python scripts/upload_src_files_to_s3.py
-```
-
-Upload documents and source files to S3 for production deployment.
+Update existing vector stores with new data. If OpenSearch is selected as the vector store, this script also adds the processed raw files and chunkated document objects to their respective S3 buckets.
 
 ### Create OpenSearch Index
 ```bash

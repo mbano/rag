@@ -6,7 +6,7 @@ from langchain_openai import OpenAIEmbeddings
 import os
 import json
 from enum import StrEnum
-from pathlib import Path
+from app.utils.paths import BASE_DIR
 
 
 class VectorStoreType(StrEnum):
@@ -83,10 +83,13 @@ def _load_vector_store_from_manifest(cfg: VectorStoreConfig, VS_DIR):
 
 
 def _load_faiss(cfg: VectorStoreConfig, **kwargs):
+    """
+    Load a FAISS vector store. If no path to an index is provided,
+    uses the merged index at BASE_DIR / "artifacts" / "faiss".
+    """
 
-    PROJECT_ROOT = Path(__file__).resolve().parents[2]
-    VS_DIR = PROJECT_ROOT / "artifacts" / cfg.type
-    path = kwargs.get("path", VS_DIR)
+    FAISS_DIR = BASE_DIR / "artifacts" / "faiss"
+    path = kwargs.get("path") or FAISS_DIR
 
     if (path / "manifest.json").exists():
         return _load_vector_store_from_manifest(cfg, path)

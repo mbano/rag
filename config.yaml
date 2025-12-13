@@ -25,6 +25,7 @@ llms:
   gpt_4o_mini:
     model_name: "gpt-4o-mini"
     model_provider: "openai"
+    api_key_name: "OPENAI_API_KEY"
 
 nodes:
   analyze_query:
@@ -82,3 +83,12 @@ ingestion:
 
 evaluation:
   llm: "gpt_4o_mini"
+  ref_dataset: "sustainability_dataset.json"
+  eval_dataset: "sustainability_dataset_2025-12-13_19-29-24.jsonl"
+  ragas_metrics: [
+    AnswerCorrectness,
+    AnswerRelevancy,
+    Faithfulness,
+    ResponseGroundedness,
+    LLMContextPrecisionWithoutReference
+  ]

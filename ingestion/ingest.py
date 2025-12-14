@@ -2,7 +2,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import json
 import os
-from app.config import settings, IngestionConfig
+from app.config import IngestionConfig
 from app.utils.opensearch import get_opensearch_langchain_kwargs
 from opensearchpy import OpenSearch
 import boto3
@@ -116,7 +116,7 @@ def _merge_vector_stores(config: IngestionConfig):
         json.dump(manifest, f, indent=2)
 
 
-def update_vector_stores(config: IngestionConfig):
+def ingest(config: IngestionConfig):
 
     added_vs = False
     data_subdirs = [path for path in Path(DATA_DIR).iterdir() if path.is_dir()]
@@ -153,7 +153,3 @@ def update_vector_stores(config: IngestionConfig):
         print("Merged existing vector stores.")
     else:
         print("No new documents to add.")
-
-
-if __name__ == "__main__":
-    update_vector_stores(settings.ingestion)

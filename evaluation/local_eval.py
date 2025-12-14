@@ -1,4 +1,4 @@
-from app.config import settings
+from app.config import get_settings
 from ragas import EvaluationDataset
 from ragas import evaluate
 from ragas.metrics import (
@@ -20,6 +20,7 @@ import json
 from dotenv import load_dotenv
 
 load_dotenv()
+settings = get_settings()
 OPENAI_API_KEY = settings.secrets.openai_api_key
 EVAL_DIR = Path(__file__).resolve().parent
 

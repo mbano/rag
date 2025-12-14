@@ -283,6 +283,3 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Settings:
 def get_settings():
     CONFIG_PATH = os.environ.get("CONFIG_PATH", DEFAULT_CONFIG_PATH)
     return load_config(CONFIG_PATH)
-
-
-settings = get_settings()

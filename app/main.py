@@ -1,20 +1,17 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from opensearchpy import OpenSearch
 from pydantic import BaseModel
 from app.rag_pipeline import build_graph
 from app.config import get_settings
-from app.utils.opensearch import get_opensearch_langchain_kwargs
 from app.utils.vector_stores import VectorStoreType
 from app.utils.artifacts import ensure_corpus_assets
 from app.utils.paths import DOC_DIR, ART_DIR
 from dotenv import load_dotenv
 import os
-from ingestion.scripts.update_vector_stores import update_vector_stores
+
 
 load_dotenv()
-OPENSEARCH_COLLECTION_ENDPOINT = os.environ["OPENSEARCH_COLLECTION_ENDPOINT"]
 
 
 class QueryRequest(BaseModel):
@@ -36,15 +33,6 @@ async def lifespan(app: FastAPI):
             revision=os.getenv("HF_DATASET_REVISION", "main"),
             want_sources=True,
         )
-
-    if vs_config.type == VectorStoreType.OPENSEARCH:
-        client = OpenSearch(
-            OPENSEARCH_COLLECTION_ENDPOINT, **get_opensearch_langchain_kwargs()
-        )
-        oss_index_exists = client.indices.exists(vs_config.kwargs["index_name"])
-        if not oss_index_exists:
-            update_vector_stores(cfg.ingestion)
-
     graph = build_graph(
         rag_cfg,
         vs_dir=vs_dir,

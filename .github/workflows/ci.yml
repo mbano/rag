@@ -15,12 +15,6 @@ jobs:
     name: Lint & tests
     runs-on: ubuntu-latest
 
-    # env:
-    #   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-    #   COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
-    #   HF_TOKEN: ${{ secrets.HF_TOKEN }}
-    #   LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,15 +58,6 @@ jobs:
       AWS_REGION: eu-north-1
       ECR_REPO_NAME: rag-app-repo
       IMAGE_TAG: ${{ github.sha }}
-      # OPENSEARCH_COLLECTION_ENDPOINT: ${{ vars.OPENSEARCH_COLLECTION_ENDPOINT }}
-      # AWS_S3_SOURCE_FILES_BUCKET: ${{ vars.AWS_S3_SOURCE_FILES_BUCKET }}
-      # AWS_S3_DOCS_BUCKET: ${{ vars.AWS_S3_DOCS_BUCKET }}
-      # HF_DATASET_REPO: ${{ vars.HF_DATASET_REPO }}
-      # HF_DATASET_REVISION: ${{ vars.HF_DATASET_REVISION }}
-      # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      # COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
-      # HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      # LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
 
     steps:
       - name: Checkout

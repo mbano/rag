@@ -155,4 +155,5 @@ def update_vector_stores(config: IngestionConfig):
         print("No new documents to add.")
 
 
-update_vector_stores(settings.ingestion)
+if __name__ == "__main__":
+    update_vector_stores(settings.ingestion)

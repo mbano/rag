@@ -257,16 +257,6 @@ def _load_eval_config(path) -> IngestionConfig:
 #  settings
 
 
-# @dataclass
-# class SecretsConfig:
-#     openai_api_key: str = field(default_factory=lambda: os.environ["OPENAI_API_KEY"])
-#     langsmith_api_key: str = field(
-#         default_factory=lambda: os.environ["LANGSMITH_API_KEY"]
-#     )
-#     cohere_api_key: str = field(default_factory=lambda: os.environ["COHERE_API_KEY"])
-#     hf_token: str = field(default_factory=lambda: os.environ["HF_TOKEN"])
-
-
 @dataclass
 class Settings:
     rag: RagConfig

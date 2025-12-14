@@ -1,6 +1,6 @@
 # RAG Backend
 
-A Retrieval-Augmented Generation (RAG) system built with LangChain, FastAPI, and LangGraph. This system provides intelligent question-answering capabilities by combining dense and sparse retrieval methods with large language models.
+An end-to-end Retrieval-Augmented Generation (RAG) system built with LangChain, FastAPI, and LangGraph. This system provides intelligent question-answering capabilities by combining dense and sparse retrieval methods with large language models.
 
 ## Features
 
@@ -192,7 +192,7 @@ The frontend will be available at `http://localhost:3000`.
 Data ingestion requires placing source files or web URLs in their corresponding folders within `/data`, then running the ingestion script:
 
 ```bash
-python scripts/update_vectorstores.py
+python scripts/ingest.py
 ```
 
 #### PDF Documents
@@ -252,19 +252,20 @@ pytest tests/test_vector_stores.py
 
 ## Scripts
 
-### Update Vector Stores and S3 buckets
+### Data Ingestion
 ```bash
-python scripts/update_vectorstores.py
+python scripts/ingest.py
 ```
 
-Update existing vector stores with new data. If OpenSearch is selected as the vector store, this script also adds the processed raw files and chunkated document objects to their respective S3 buckets.
+Ingest data from PDFs, web pages, or SQL databases and create vector store indices. If OpenSearch is selected as the vector store, this script also uploads the processed files and document objects to their respective S3 buckets.
 
-### Create OpenSearch Index
+
+### Upload Source Files to S3
 ```bash
-python scripts/create_opensearch_index_from_local.py
+python ingestion/upload_src_files_to_s3.py
 ```
 
-Create an OpenSearch index from local FAISS vector store.
+Upload source files to S3 for production deployment.
 
 ## Deployment
 

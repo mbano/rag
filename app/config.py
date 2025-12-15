@@ -254,6 +254,21 @@ def _load_eval_config(path) -> IngestionConfig:
     )
 
 
+@dataclass
+class InitConfig:
+    download_index: bool
+
+
+def _load_init_config(path) -> InitConfig:
+    path = Path(path)
+    raw = yaml.safe_load(path.read_text())
+
+    init_raw = raw["init"]
+    download_index = init_raw["download_index"]
+
+    return InitConfig(download_index=download_index)
+
+
 #  settings
 
 
@@ -262,20 +277,20 @@ class Settings:
     rag: RagConfig
     ingestion: IngestionConfig
     evaluation: EvalConfig
-    # secrets: SecretsConfig
+    init: InitConfig
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Settings:
     rag = _load_rag_config(path)
     ingestion = _load_ingestion_config(path)
     evaluation = _load_eval_config(path)
-    # secrets = SecretsConfig()
+    init = _load_init_config(path)
 
     return Settings(
         rag=rag,
         ingestion=ingestion,
         evaluation=evaluation,
-        # secrets=secrets,
+        init=init,
     )
 
 

@@ -92,3 +92,6 @@ evaluation:
     ResponseGroundedness,
     LLMContextPrecisionWithoutReference
   ]
+
+init:
+  download_index: true

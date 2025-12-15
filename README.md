@@ -221,21 +221,37 @@ SQL database ingestion requires creating a custom ingestor for each database. To
 
 #### FAISS Index Download
 
-On startup, the application automatically attempts to download FAISS indices and source documents from the configured Hugging Face repository (if `HF_DATASET_REPO` is set).
+When FAISS is selected as the vector store in `config.yaml`, the application can automatically download pre-built FAISS indices and source documents from a Hugging Face repository on startup. This is controlled by:
+- Vector store type set to `faiss` in `config.yaml`
+- `HF_DATASET_REPO` environment variable (must be set to enable auto-download)
+- `HF_DATASET_REVISION` environment variable (optional, defaults to "main")
 
 ### Evaluation
+
+#### LangSmith Evaluation
 
 Run evaluations using LangSmith for tracking and analysis:
 
 ```bash
-python evaluation/scripts/langsmith_eval.py
+python evaluation/scripts/langsmith_eval.py [dataset_name]
 ```
 
-To generate evaluation datasets for testing:
+**Requirements:**
+- Evaluation dataset must be located at: `evaluation/datasets/[dataset_name]/dataset.jsonl`
+- Dataset name can be passed as a command-line argument, or configured in `config.yaml`
+- LangSmith API key must be set in environment variables
+
+#### Generate Evaluation Datasets
+
+Create evaluation datasets from reference data:
 
 ```bash
-python evaluation/scripts/populate_dataset.py
+python evaluation/scripts/populate_dataset.py [reference_dataset_name]
 ```
+
+**Requirements:**
+- Reference dataset must be located in: `evaluation/datasets/reference_datasets/`
+- Reference dataset name can be passed as a command-line argument, or configured in `config.yaml`
 
 ## Testing
 
@@ -330,20 +346,41 @@ GitHub Actions workflow is configured in `.github/workflows/ci.yml` for automate
 
 ## Environment Variables
 
-Required environment variables:
+### Required
 
 - `OPENAI_API_KEY`: OpenAI API key for embeddings and LLM
-- `COHERE_API_KEY`: Cohere API key for reranking (optional)
-- `LANGSMITH_API_KEY`: LangSmith API key for tracing (optional)
-- `LANGSMITH_TRACING`: Enable LangSmith tracing (optional)
-- `LANGSMITH_PROJECT`: LangSmith project name (optional)
-- `HF_DATASET_REPO`: HuggingFace dataset repository (optional)
-- `HF_DATASET_REVISION`: HuggingFace dataset revision (optional, default: main)
+- `COHERE_API_KEY`: Cohere API key (only required if using Cohere reranking in config.yaml)
 
-AWS-specific (for production):
-- `AWS_REGION`: AWS region
-- `AWS_ACCESS_KEY_ID`: AWS access key
-- `AWS_SECRET_ACCESS_KEY`: AWS secret key
+### Optional
+
+Only necessary when config init option `download_index` is set to `true`:
+- `HF_DATASET_REPO`: HuggingFace dataset repository for downloading pre-built FAISS indices
+- `HF_DATASET_REVISION`: HuggingFace dataset revision (default: "main")
+- `HF_TOKEN`: Access token to the repo holding the indices, if not public.
+
+### LangSmith Integration (Optional)
+
+For monitoring and tracing:
+- `LANGSMITH_API_KEY`: LangSmith API key
+- `LANGSMITH_TRACING`: Enable tracing (set to "true")
+- `LANGSMITH_PROJECT`: Project name in LangSmith
+- `LANGSMITH_ENDPOINT`: LangSmith endpoint URL (optional)
+
+### AWS/OpenSearch (Required for Production with OpenSearch)
+
+Only needed when using OpenSearch as the vector store:
+- `AWS_REGION`: AWS region for OpenSearch
+- `OPENSEARCH_COLLECTION_ENDPOINT`: OpenSearch collection endpoint URL
+- `AWS_S3_DOCS_BUCKET`: S3 bucket name for storing documents
+- `AWS_S3_SOURCE_FILES_BUCKET`: S3 bucket name for source files (used by upload scripts)
+
+**AWS Credentials**: The application uses boto3 to connect to AWS services. Boto3 automatically discovers credentials from:
+- Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+- AWS credentials file (`~/.aws/credentials`)
+- IAM roles (when running on EC2/ECS)
+- Other standard AWS credential sources
+
+For local development, you can either set environment variables or use the AWS credentials file. For production deployment on AWS (ECS), IAM roles are recommended.
 
 ## Contributing
 
@@ -362,7 +399,7 @@ pytest
 
 ## License
 
-[Your License Here]
+Licensed under the Apache License, Version 2.0. See LICENSE
 
 ## Support
 

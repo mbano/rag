@@ -22,11 +22,12 @@ class QueryRequest(BaseModel):
 async def lifespan(app: FastAPI):
     cfg = get_settings()
     rag_cfg = cfg.rag
+    init_cfg = cfg.init
     vs_key = rag_cfg.nodes.retrieve.dense_vector_store_key
     vs_config = rag_cfg.vector_stores[vs_key]
     vs_dir = ART_DIR / vs_config.type
     doc_dir = DOC_DIR
-    if vs_config.type == VectorStoreType.FAISS:
+    if vs_config.type == VectorStoreType.FAISS and init_cfg.download_index:
         vs_dir, doc_dir = ensure_corpus_assets(
             config=vs_config,
             repo_id=os.getenv("HF_DATASET_REPO"),

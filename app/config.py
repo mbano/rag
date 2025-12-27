@@ -221,7 +221,6 @@ def _load_ingestion_config(path) -> IngestionConfig:
 
 
 #  evaluation
-#  TODO: add eval metrics
 
 
 @dataclass
@@ -254,19 +253,39 @@ def _load_eval_config(path) -> IngestionConfig:
     )
 
 
+# init - values are set as env variables
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    var = os.environ.get(name)
+    if var is None:
+        return default
+    return var.strip().lower() in ["true", "1", "t", "yes", "y"]
+
+
 @dataclass
 class InitConfig:
     download_index: bool
 
 
-def _load_init_config(path) -> InitConfig:
-    path = Path(path)
-    raw = yaml.safe_load(path.read_text())
+def _load_init_config() -> InitConfig:
+    DOWNLOAD_INDEX = _env_bool("DOWNLOAD_INDEX", default=True)
 
-    init_raw = raw["init"]
-    download_index = init_raw["download_index"]
+    return InitConfig(download_index=DOWNLOAD_INDEX)
 
-    return InitConfig(download_index=download_index)
+
+# security & authentication
+
+
+@dataclass
+class AuthConfig:
+    auth_mode: str
+
+
+def _load_auth_config() -> AuthConfig:
+    AUTH_MODE = os.environ.get("AUTH_MODE", None)
+
+    return AuthConfig(auth_mode=AUTH_MODE)
 
 
 #  settings
@@ -278,19 +297,22 @@ class Settings:
     ingestion: IngestionConfig
     evaluation: EvalConfig
     init: InitConfig
+    auth: AuthConfig
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Settings:
     rag = _load_rag_config(path)
     ingestion = _load_ingestion_config(path)
     evaluation = _load_eval_config(path)
-    init = _load_init_config(path)
+    init = _load_init_config()
+    auth = _load_auth_config()
 
     return Settings(
         rag=rag,
         ingestion=ingestion,
         evaluation=evaluation,
         init=init,
+        auth=auth,
     )
 
 

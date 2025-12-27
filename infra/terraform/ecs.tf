@@ -41,53 +41,57 @@ resource "aws_ecs_task_definition" "app" {
 
             "environment": [
                 {
-                "name": "LANGSMITH_TRACING",
-                "value": "true"
+                    "name": "LANGSMITH_TRACING",
+                    "value": "true"
                 },
                 {
-                "name": "APP_DATA_DIR",
-                "value": "data"
+                    "name": "APP_DATA_DIR",
+                    "value": "data"
                 },
                 {
-                "name": "LANGSMITH_ENDPOINT",
-                "value": "https://api.smith.langchain.com"
+                    "name": "LANGSMITH_ENDPOINT",
+                    "value": "https://api.smith.langchain.com"
                 },
                 {
-                "name": "LANGSMITH_PROJECT",
-                "value": "rag_demo_aws"
+                    "name": "LANGSMITH_PROJECT",
+                    "value": "rag_demo_aws"
                 },
                 {
-                "name": "HF_DATASET_REPO",
-                "value": "m-bano/rag-assets"
+                    "name": "HF_DATASET_REPO",
+                    "value": "m-bano/rag-assets"
                 },
                 {
-                "name": "APP_ARTIFACTS_DIR",
-                "value": "/artifacts"
+                    "name": "APP_ARTIFACTS_DIR",
+                    "value": "/artifacts"
                 },
                 {
-                "name": "HF_HUB_ENABLE_HF_TRANSFER",
-                "value": "1"
+                    "name": "HF_HUB_ENABLE_HF_TRANSFER",
+                    "value": "1"
                 },
                 {
-                "name": "HF_DATASET_REVISION",
-                "value": "main"
+                    "name": "HF_DATASET_REVISION",
+                    "value": "main"
+                },
+                {
+                    "name": "DOWNLOAD_INDEX",
+                    "value": "true"
                 },
                 {
                     "name": "AWS_REGION",
                     "value": var.aws_region
                 },
-                {
-                    "name": "OPENSEARCH_COLLECTION_ENDPOINT",
-                    "value": aws_opensearchserverless_collection.rag_app.collection_endpoint
-                },
-                {
-                    "name": "OPENSEARCH_COLLECTION_NAME",
-                    "value": aws_opensearchserverless_collection.rag_app.name
-                },
-                {
-                    "name": "OPENSEARCH_DASHBOARD_ENDPOINT",
-                    "value": aws_opensearchserverless_collection.rag_app.dashboard_endpoint
-                },
+                # {
+                #     "name": "OPENSEARCH_COLLECTION_ENDPOINT",
+                #     "value": aws_opensearchserverless_collection.rag_app.collection_endpoint
+                # },
+                # {
+                #     "name": "OPENSEARCH_COLLECTION_NAME",
+                #     "value": aws_opensearchserverless_collection.rag_app.name
+                # },
+                # {
+                #     "name": "OPENSEARCH_DASHBOARD_ENDPOINT",
+                #     "value": aws_opensearchserverless_collection.rag_app.dashboard_endpoint
+                # },
                 {
                     "name": "AWS_S3_SOURCE_FILES_BUCKET",
                     "value": "${var.app_name}-source-files-bucket"
@@ -95,6 +99,22 @@ resource "aws_ecs_task_definition" "app" {
                 {
                     "name": "AWS_S3_DOCS_BUCKET",
                     "value": "${var.app_name}-chunkated-docs-bucket"
+                }
+                {
+                    "name": "AUTH_MODE",
+                    "value": "cognito"
+                }
+                {
+                    "name": "COGNITO_REGION",
+                    "value": var.aws_region
+                }
+                {
+                    "name": "COGNITO_USER_POOL_ID",
+                    "value": aws_cognito_user_pool.pool.id
+                }
+                {
+                    "name": "COGNITO_APP_CLIENT_ID",
+                    "value": aws_cognito_user_pool_client.public.id
                 }
             ],
             "secrets": [

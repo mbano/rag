@@ -88,3 +88,18 @@ output "opensearch_dashboard_endpoint" {
     description = "OpenSearch Serverless dashboard endpoint"
     value       = aws_opensearchserverless_collection.rag_app.dashboard_endpoint
 }
+
+output "cognito_user_pool_id" {
+    description = "ID of the Cognito user pool"
+    value = aws_cognito_user_pool.pool.id
+}
+
+output "cognito_app_client_id" {
+    description = "ID of the Cognito app client"
+    value = aws_cognito_user_pool_client.public.id
+}
+
+output "cognito_domain" {
+    description = "Cognito domain"
+    value = aws_cognito_user_pool_domain.main.domain
+}

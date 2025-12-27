@@ -27,3 +27,7 @@ requests-aws4auth
 
 # monitoring
 langsmith
+
+# auth & security
+PyJWT[crypto]
+httpx

@@ -7,6 +7,7 @@ from app.config import get_settings
 from app.utils.vector_stores import VectorStoreType
 from app.utils.artifacts import ensure_corpus_assets
 from app.utils.paths import DOC_DIR, ART_DIR
+from app.api.routes import rag, health
 from dotenv import load_dotenv
 import os
 
@@ -58,13 +59,5 @@ app.add_middleware(
 )
 
 
-@app.post("/ask")
-async def ask_question(req: QueryRequest):
-    graph = app.state.graph
-    result = graph.invoke({"question": req.question})
-    return result
-
-
-@app.get("/")
-async def report_status():
-    return {"message": "status OK"}
+app.include_router(health.router)
+app.include_router(rag.router)
